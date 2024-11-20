@@ -44,7 +44,7 @@ if __name__ == "__main__":
         print(
             "[ ] Transition probabilities not implemented. If this is unexpected, check the boolean 'TRANSITION_PROBABILITIES_IMPLEMENTED'."
         )
-        P = np.zeros((Constants.K, Constants.K, Constants.L))
+        #P = np.zeros((Constants.K, Constants.K, Constants.L))
 
     # Compute expected stage costs
     if STAGE_COSTS_IMPLEMENTED:
