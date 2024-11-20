@@ -20,6 +20,11 @@
 import numpy as np
 from utils import *
 
+def compute_state_plus_currents(i,j, Constants):
+    current_i, current_j = Constants.FLOW_FIELD[i][j]
+    new_i = i + current_i
+    new_j = j + current_j
+    return (new_i, new_j)
 
 def compute_transition_probabilities(Constants):
     """Computes the transition probability matrix P.
@@ -40,6 +45,8 @@ def compute_transition_probabilities(Constants):
     print()
     print("K ", Constants.K)
     print("L ", Constants.L)
+    print("Result")
+    print(compute_state_plus_currents(4,4, Constants))
     # TODO fill the transition probability matrix P here
 
     return P
