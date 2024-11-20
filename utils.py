@@ -110,6 +110,7 @@ def state2idx(state):
         factor *= j
 
     return idx
+
 def input2idx(ux, uy):
     mapping = {
         (-1, -1): 0,
@@ -168,6 +169,48 @@ def h_fun(idx):
     # Controllo collisione con droni statici
     for drone_pos in Constants.DRONE_POS:
         if tuple(drone_pos) == (x_drone, y_drone):
-            return 1  # Collisione con un drone statico
+            return 1 # Collisione con un drone statico
+    
 
     return 0  # Nessuna collisione e il drone è nella mappa
+
+def compute_state_plus_currents(i,j):
+    current_i, current_j = Constants.FLOW_FIELD[i][j]
+    new_i = i + current_i
+    new_j = j + current_j
+    return (new_i, new_j)
+
+
+def current_disturbance_map():
+    '''
+    For every state, builds a map that for both cases with or without the current,
+    checks if you'll go to a problematic state.
+
+    Output:
+        MxN map: 1 if the state is problematic (requires deploying a new drone),
+                 0 otherwise.
+    A state is problematic if, after the current disturbance, the drone ends up:
+        - Outside the grid.
+        - On a static drone.
+    '''
+    M = Constants.M
+    N = Constants.N
+    mappa = np.zeros((M, N))
+    static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  # Use a set for quick lookups
+
+    for iX in range(M):  # Include the full range
+        for iY in range(N):  # Include the full range
+            updated_x, updated_y = compute_state_plus_currents(iX, iY)
+            # Check for outside of the map:
+            if not (0 <= updated_x < M and 0 <= updated_y < N):
+                mappa[iX, iY] = 1
+                continue
+            # Check for static drone collision:
+            if (updated_x, updated_y) in static_drones:
+                mappa[iX, iY] = 1
+    return mappa
+
+
+
+
+
