@@ -110,3 +110,64 @@ def state2idx(state):
         factor *= j
 
     return idx
+def input2idx(ux, uy):
+    mapping = {
+        (-1, -1): 0,
+        (0, -1): 1,
+        (1, -1): 2,
+        (-1, 0): 3,
+        (0, 0): 4,
+        (1, 0): 5,
+        (-1, 1): 6,
+        (0, 1): 7,
+        (1, 1): 8,
+    }
+    result = mapping.get((ux, uy), -1) 
+    return np.array(result) if result is not -1 else -1  # Converte in array NumPy
+ 
+def idx2input(idx):
+    reverse_mapping = {
+        0: (-1, -1),
+        1: (0, -1),
+        2: (1, -1),
+        3: (-1, 0),
+        4: (0, 0),
+        5: (1, 0),
+        6: (-1, 1),
+        7: (0, 1),
+        8: (1, 1),
+    }
+    result = reverse_mapping.get(idx, None)  # Restituisce None se l'indice non è trovato
+    return np.array(result) if result is not None else None  # Converte in array NumPy
+
+
+def h_fun(idx):
+    """
+    Verifica se il drone è fuori dalla mappa o ha fatto collisione con un drone statico.
+
+    Args:
+        idx (int): indice dello stato.
+
+    Returns:
+        int: 1 se il drone è fuori dalla mappa o in collisione, 0 altrimenti.
+    """
+    # Ottieni lo stato corrente (x_drone, y_drone, x_swan, y_swan)
+    state = idx2state(idx)
+
+    x_drone, y_drone, _, _ = state
+
+    #add disturbance
+    flow = Constants.FLOW_FIELD[x_drone,y_drone] 
+    x_drone += flow[0]
+    y_drone += flow[1]
+    
+    # Controllo se il drone è fuori dalla griglia
+    if not (0 <= x_drone < Constants.M and 0 <= y_drone < Constants.N):
+        return 1  # Fuori dalla mappa
+
+    # Controllo collisione con droni statici
+    for drone_pos in Constants.DRONE_POS:
+        if tuple(drone_pos) == (x_drone, y_drone):
+            return 1  # Collisione con un drone statico
+
+    return 0  # Nessuna collisione e il drone è nella mappa
