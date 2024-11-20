@@ -110,6 +110,7 @@ def state2idx(state):
         factor *= j
 
     return idx
+
 def input2idx(ux, uy):
     mapping = {
         (-1, -1): 0,
@@ -168,6 +169,17 @@ def h_fun(idx):
     # Controllo collisione con droni statici
     for drone_pos in Constants.DRONE_POS:
         if tuple(drone_pos) == (x_drone, y_drone):
-            return 1  # Collisione con un drone statico
+            return 1 # Collisione con un drone statico
+    
 
     return 0  # Nessuna collisione e il drone è nella mappa
+
+
+def check_static_drone_collision(params):
+    '''
+    For every state, builds a map that for both cases with or without the current,
+    checks if you'll go to 0.
+    
+
+    '''
+    pass
