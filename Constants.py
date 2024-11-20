@@ -57,7 +57,6 @@ class Constants:
         :, [3, 2, 1, 0]
     ]
     K = len(STATE_SPACE)
-
     # input space
     INPUT_SPACE = np.array(list(itertools.product([-1, 0, 1], repeat=2)), dtype=int)[
         :, [1, 0]

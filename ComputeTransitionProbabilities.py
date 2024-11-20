@@ -37,7 +37,9 @@ def compute_transition_probabilities(Constants):
         np.array: Transition probability matrix of shape (K,K,L).
     """
     P = np.zeros((Constants.K, Constants.K, Constants.L))
-
+    print()
+    print("K ", Constants.K)
+    print("L ", Constants.L)
     # TODO fill the transition probability matrix P here
 
     return P
