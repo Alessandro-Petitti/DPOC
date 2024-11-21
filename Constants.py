@@ -49,7 +49,7 @@ class Constants:
     N_DRONES = 3  # Number of static drones
     # Generate unique coordinates for the start, goal and drone positions
     START_POS, GOAL_POS, DRONE_POS = generate_unique_coordinates(N_DRONES + 2, M, N)
-
+    
     # State space
     _y = np.arange(0, N)
     _x = np.arange(0, M)
@@ -62,7 +62,6 @@ class Constants:
         :, [1, 0]
     ]
     L = len(INPUT_SPACE)
-
     # ----- Cost -----
     # Stage cost factors
     THRUSTER_COST = 1  # Cost of using one thruster

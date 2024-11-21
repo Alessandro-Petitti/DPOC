@@ -174,12 +174,18 @@ def h_fun(idx):
 
     return 0  # Nessuna collisione e il drone è nella mappa
 
-def compute_state_plus_currents(i,j):
-    current_i, current_j = Constants.FLOW_FIELD[i][j]
-    new_i = i + current_i
-    new_j = j + current_j
-    return (new_i, new_j)
+def compute_state_plus_currents(i,j, Constants):
+    if 0 <= i < Constants.N and 0 <= j < Constants.M:    
+        current_i, current_j = Constants.FLOW_FIELD[i][j]
+        new_i = i + current_i
+        new_j = j + current_j
+        return (new_i, new_j)
+    return (-1,-1)
 
+def compute_state_with_input(i,j,l, Constants):
+    if l > len(Constants.INPUT_SPACE):
+        return (i,j)
+    return (i+Constants.INPUT_SPACE[l][0],j+Constants.INPUT_SPACE[l][1])
 
 def current_disturbance_map():
     '''
