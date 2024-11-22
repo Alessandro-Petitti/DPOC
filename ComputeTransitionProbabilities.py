@@ -29,43 +29,53 @@ def compute_matrix_Piju(Constants):
     static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
     for i in range(Constants.N):# iterate over all x
         for j in range(Constants.M): # iterate over all y
-            for l in range(Constants.L): # iterate over all input
-                # current state as index
-                map_i = state2idx(i,j,Constants) 
-                #----- no current applied ----------
-                #check where you'd end up WITHOUTH current
-                no_current_i, no_current_j = compute_state_with_input(i,j,l, Constants)
-                #check if you end un inside the map
-                if 0 <= no_current_i < Constants.N and 0 <= no_current_j < Constants.M:
-                    #get the state you'd end up WITHOUTH current as an index
-                    map_j = state2idx(no_current_i,no_current_j,Constants)
-                    #chek for static collision
-                    if tuple([no_current_i, no_current_j]) in static_drones:
-                        #if hitted, you go home with a probability of 1-p_current
-                        P[map_i][map_start][l] = 1 - Constants.CURRENT_PROB[no_current_i][no_current_j]
-                    else:
-                        #if no probelm arises: you go to the designated x with probability 1-p_current
-                        P[map_i][map_j][l] = 1 - Constants.CURRENT_PROB[no_current_i][no_current_j]
-                else:
-                    #if you are outside the map, you go home with probability 1-p_current
-                    P[map_i][map_start][l] = 1 - Constants.CURRENT_PROB[no_current_i][no_current_j]
-                # ––––– apply current –-------
-                #check wherer you'd end up WITH current
-                current_i, current_j = compute_state_plus_currents(no_current_i,no_current_j, Constants)
-                #check if you end up outside the map
-                if 0 <= current_i < Constants.N and 0 <= current_j < Constants.M:
-                    #convert to index the state
-                    map_j = state2idx(current_i,current_j,Constants)
-                    #check if collision with static drones
-                    if tuple([current_i, current_j]) in static_drones:
-                        #if yes go home 
-                        P[map_i][map_start][l] = Constants.CURRENT_PROB[no_current_i][no_current_j]
-                    else:
-                        #if no, go j
-                        P[map_i][map_j][l] = Constants.CURRENT_PROB[no_current_i][no_current_j]
-                # if you are outside the map you go home.
-                else:
-                    P[map_i][map_start][l] = Constants.CURRENT_PROB[no_current_i][no_current_j]
+            for i_swan in range(Constants.N): # iterate over all x for the swan 
+                for j_swan in range(Constants.M): # iterate over all y for the swan
+                    for l in range(Constants.L): # iterate over all input
+                        # current state as index
+                        map_i = state2idx(i,j,i_swan, j_swan, Constants) 
+                        #----- no current applied ----------
+                        #check where you'd end up WITHOUTH current
+                        no_current_i, no_current_j = compute_state_with_input(i,j,l, Constants)
+                        #check where the drone ends up if it moves
+                        moved_swan_x, moved_swan_y = compute_state_with_input(i_swan,j_swan,l, Constants)
+                        #check if you end un inside the map
+                        if 0 <= no_current_i < Constants.N and 0 <= no_current_j < Constants.M:
+                            #get the state you'd end up WITHOUTH current as an index
+                            map_j = state2idx(no_current_i,no_current_j,i_swan, j_swan, Constants)
+                            #chek for static collision
+                            no_collisions = 1
+                            if tuple([no_current_i, no_current_j]) in static_drones:
+                                #if hitted, you go home with a probability of 1-p_current
+                                P[map_i][map_start][l] = 1 - Constants.CURRENT_PROB[no_current_i][no_current_j]
+                                no_collisions = 0
+                            if :
+                                no_collisions = 0
+                            if no_collisions:
+                                #if no probelm arises: you go to the designated x with probability 1-p_current
+                                P[map_i][map_j][l] = 1 - Constants.CURRENT_PROB[no_current_i][no_current_j]
+                        else:
+                            #if you are outside the map, you go home with probability 1-p_current
+                            P[map_i][map_start][l] = 1 - Constants.CURRENT_PROB[no_current_i][no_current_j]
+                        # ––––– apply current –-------
+                        #check wherer you'd end up WITH current
+                        current_i, current_j = compute_state_plus_currents(no_current_i,no_current_j, Constants)
+                        # Genera la linea tra i punti di partenza e arrivo senza corrente
+                        path = bresenham((i, j), (current_i, current_j))
+                        #check if you end up outside the map
+                        if 0 <= current_i < Constants.N and 0 <= current_j < Constants.M:
+                            #convert to index the state
+                            map_j = state2idx(current_i,current_j,i_swan, j_swan, Constants)
+                            #check if collision with static drones
+                            if any(tuple(point) in static_drones for point in path):
+                                #if yes go home 
+                                P[map_i][map_start][l] = Constants.CURRENT_PROB[no_current_i][no_current_j]
+                            else:
+                                #if no, go j
+                                P[map_i][map_j][l] = Constants.CURRENT_PROB[no_current_i][no_current_j]
+                        # if you are outside the map you go home.
+                        else:
+                            P[map_i][map_start][l] = Constants.CURRENT_PROB[no_current_i][no_current_j]
     return P
 
 def compute_transition_probabilities(Constants):
