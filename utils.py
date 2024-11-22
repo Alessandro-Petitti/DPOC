@@ -217,6 +217,30 @@ def current_disturbance_map():
     return mappa
 
 
+def drone_position_numpy(x_swan, y_swan, x_drone, y_drone):
+    # Calcolo dell'angolo θ usando atan2
+    theta = np.arctan2(y_drone - y_swan, x_drone - x_swan)
+    
+    # Mappatura dell'angolo θ ai quadranti
+    if -np.pi/8 <= theta < np.pi/8:
+        return (+1, 0)  # East (E)
+    elif np.pi/8 <= theta < 3*np.pi/8:
+        return (+1, +1)  # North-East (NE)
+    elif 3*np.pi/8 <= theta < 5*np.pi/8:
+        return (0, +1)  # North (N)
+    elif 5*np.pi/8 <= theta < 7*np.pi/8:
+        return (-1, +1)  # North-West (NW)
+    elif theta >= 7*np.pi/8 or theta < -7*np.pi/8:
+        return (-1, 0)  # West (W)
+    elif -7*np.pi/8 <= theta < -5*np.pi/8:
+        return (-1, -1)  # South-West (SW)
+    elif -5*np.pi/8 <= theta < -3*np.pi/8:
+        return (0, -1)  # South (S)
+    elif -3*np.pi/8 <= theta < -np.pi/8:
+        return (+1, -1)  # South-East (SE)
+
+
+
 
 
 
