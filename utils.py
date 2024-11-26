@@ -154,29 +154,25 @@ def h_fun(idx):
     """
     # Ottieni lo stato corrente (x_drone, y_drone, x_swan, y_swan)
     state = idx2state(idx)
-
     x_drone, y_drone, _, _ = state
 
-    #add disturbance
-    flow = Constants.FLOW_FIELD[x_drone,y_drone] 
-    x_drone += flow[0]
-    y_drone += flow[1]
+    # add current to the drone position
+    x_drone, y_drone = compute_state_plus_currents(int(x_drone), int(y_drone), Constants)
     
-    # Controllo se il drone è fuori dalla griglia
+    #check if the drone is outside the map
     if not (0 <= x_drone < Constants.M and 0 <= y_drone < Constants.N):
-        return 1  # Fuori dalla mappa
+        return 1  # outise of the map
 
-    # Controllo collisione con droni statici
+    # Check if the drone is colliding with a static drone
     for drone_pos in Constants.DRONE_POS:
         if tuple(drone_pos) == (x_drone, y_drone):
-            return 1 # Collisione con un drone statico
+            return 1 #collision
     
-
-    return 0  # Nessuna collisione e il drone è nella mappa
+    return 0  # No need for a new drone
 
 def compute_state_plus_currents(i,j, Constants):
     if 0 <= i < Constants.N and 0 <= j < Constants.M:    
-        current_i, current_j = Constants.FLOW_FIELD[i][j]
+        current_i, current_j = Constants.FLOW_FIELD[i,j]
         new_i = i + current_i
         new_j = j + current_j
         return (new_i, new_j)
@@ -217,7 +213,7 @@ def current_disturbance_map():
     return mappa
 
 
-def drone_position_numpy(x_swan, y_swan, x_drone, y_drone):
+def Swan_movment_to_catch_drone(x_swan, y_swan, x_drone, y_drone):
     # Calcolo dell'angolo θ usando atan2
     theta = np.arctan2(y_drone - y_swan, x_drone - x_swan)
     
@@ -240,7 +236,21 @@ def drone_position_numpy(x_swan, y_swan, x_drone, y_drone):
         return (+1, -1)  # South-East (SE)
 
 
-
+def generate_respawn_indices(Constants):
+    """
+    Generates all the valid respawn states indices for the drone.
+    """
+    start_x, start_y = Constants.START_POS
+    
+    # all possible states but the starting one
+    respawn_states = [
+        state2idx([start_x, start_y, xswan, yswan])
+        for xswan in range(Constants.M)
+        for yswan in range(Constants.N)
+        if not (xswan == start_x and yswan == start_y)
+    ]
+    
+    return np.array(respawn_states)
 
 
 

@@ -29,13 +29,13 @@ from Solver import solution
 if __name__ == "__main__":
     # Set the following to True as you progress with the files
     TRANSITION_PROBABILITIES_IMPLEMENTED = True
-    STAGE_COSTS_IMPLEMENTED = False
+    STAGE_COSTS_IMPLEMENTED = True
     SOLUTION_IMPLEMENTED = False
 
     # Compute transition probabilities
     if TRANSITION_PROBABILITIES_IMPLEMENTED:
         sys.stdout.write("[ ] Computing transition probabilities...")
-
+        print(np.shape(Constants.CURRENT_PROB)) 
         # TODO implement this function in ComputeTransitionProbabilities.py
         P = compute_transition_probabilities(Constants)
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     if STAGE_COSTS_IMPLEMENTED:
         sys.stdout.write("[ ] Computing expected stage costs...")
 
-        # TODO implement this function in ComputeExpectedStageCosts.py
+        
         Q = compute_expected_stage_cost(Constants)
 
         print("\r[X] Expected stage costs computed.            ")
