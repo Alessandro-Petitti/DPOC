@@ -46,7 +46,7 @@ def compute_expected_stage_cost(Constants):
             if state[0] == state[2] and state[1] == state[3]:
                 Q[iState,iInput] = 0
             else:
-                Q[iState,iInput] = Constants.TIME_COST +Constants.THRUSTER_COST*(np.abs(input_vec[0])+np.abs(input_vec[1]))+h_fun(iState)*Constants.DRONE_COST
+                Q[iState,iInput] = Constants.TIME_COST +Constants.THRUSTER_COST*(np.abs(input_vec[0])+np.abs(input_vec[1]))+h_fun(iState,iInput)*Constants.DRONE_COST
         
     
     return Q

@@ -142,7 +142,7 @@ def idx2input(idx):
     return np.array(result) if result is not None else None  # Converte in array NumPy
 
 
-def h_fun(idx):
+def h_fun(idx_state, idx_input):
     """
     Verifica se il drone è fuori dalla mappa o ha fatto collisione con un drone statico.
 
@@ -153,20 +153,29 @@ def h_fun(idx):
         int: 1 se il drone è fuori dalla mappa o in collisione, 0 altrimenti.
     """
     # Ottieni lo stato corrente (x_drone, y_drone, x_swan, y_swan)
-    state = idx2state(idx)
-    x_drone, y_drone, _, _ = state
+    x_drone, y_drone, x_swan, y_swan = (int(value) for value in idx2state(idx_state))
 
-    # add current to the drone position
-    x_drone, y_drone = compute_state_plus_currents(int(x_drone), int(y_drone), Constants)
-    
     #check if the drone is outside the map
     if not (0 <= x_drone < Constants.M and 0 <= y_drone < Constants.N):
         return 1  # outise of the map
-
-    # Check if the drone is colliding with a static drone
-    for drone_pos in Constants.DRONE_POS:
-        if tuple(drone_pos) == (x_drone, y_drone):
-            return 1 #collision
+    
+    # Calcola la nuova posizione del drone con ingresso e corrente
+    current_i, current_j = Constants.FLOW_FIELD[x_drone,y_drone]
+    new_x_drone = x_drone + Constants.INPUT_SPACE[idx_input][0] + current_i
+    new_y_drone = y_drone + Constants.INPUT_SPACE[idx_input][1] + current_j
+    path = bresenham((x_drone, y_drone), (new_x_drone, new_y_drone))
+    static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
+    # Check for static drone collision in the path from start to end (input and current)
+    if any(tuple(point) in static_drones for point in path):
+        return 1
+    
+    #move the swan
+    dx, dy = Swan_movment_to_catch_drone(x_swan, y_swan, x_drone, y_drone)
+    moved_swan_x = x_swan + dx
+    moved_swan_y = y_swan + dy
+    #check collision between swan and moved drone
+    if moved_swan_x == new_x_drone and moved_swan_y == new_y_drone:
+        return 1
     
     return 0  # No need for a new drone
 
