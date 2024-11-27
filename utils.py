@@ -249,7 +249,7 @@ def generate_respawn_indices(Constants):
         for yswan in range(Constants.N)
         if not (xswan == start_x and yswan == start_y)
     ]
-    
+
     return np.array(respawn_states)
 
 

@@ -41,6 +41,8 @@ def compute_matrix_Piju(Constants):
                     if i == i_swan and j == j_swan:
                             continue
                     for l in range(Constants.L): # iterate over all input
+                        count = 0
+                        print("The count has restarted", map_i, l)
                         #----- no current applied ----------
                         #check where you'd end up WITHOUTH current
                         no_current_i, no_current_j = compute_state_with_input(i,j,l, Constants)
@@ -67,21 +69,37 @@ def compute_matrix_Piju(Constants):
                                     #print(f"idx for no current and moved swan:", state2idx([no_current_i,no_current_j,moved_swan_x, moved_swan_y]))
                                     #print(f"moved swan into: ", moved_swan_x, moved_swan_y,"drone position: ", no_current_i, no_current_j)
                                     P[map_i,state2idx([no_current_i,no_current_j,moved_swan_x, moved_swan_y]),l] = (1 - Constants.CURRENT_PROB[i][j])* Constants.SWAN_PROB
+                                    count += (1 - Constants.CURRENT_PROB[i][j])* Constants.SWAN_PROB
+                                    print(f"count wo current 1: {count}")
                                 #the swan is moving and hits the drone
                                 else: 
-                                     P[map_i, respawn_indices, l]  = (1 - Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB*respawn_probability
+                                    for respawn_index in respawn_indices:
+                                        P[map_i, respawn_index, l]  = (1 - Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB*respawn_probability
+                                        count += (1 - Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB* respawn_probability
+                                    print(f"count wo current 2: {count}")
                                 #if the swan is not moving and is not going to hit the drone
                                 if (i_swan != no_current_i or j_swan != no_current_j):
                                     P[map_i,state2idx([no_current_i,no_current_j,i_swan, j_swan]),l] = (1 - Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
+                                    count += (1 - Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
+                                    print(f"count wo current 3: {count}")
                                 #the swan is not moving and hits the drone
                                 else:
-                                    P[map_i, respawn_indices, l] = (1 - Constants.CURRENT_PROB[i][j]) * (1- Constants.SWAN_PROB)*respawn_probability
+                                    for respawn_index in respawn_indices:
+                                        P[map_i, respawn_index, l] = (1 - Constants.CURRENT_PROB[i][j]) * (1- Constants.SWAN_PROB)*respawn_probability
+                                        count += (1 - Constants.CURRENT_PROB[i][j]) * (1- Constants.SWAN_PROB) * respawn_probability
+                                    print(f"count wo current 4: {count}")
                             else:
                                 #if you hit a static drone, you go home
-                                P[map_i, respawn_indices, l]= (1 - Constants.CURRENT_PROB[i][j])*respawn_probability
+                                for respawn_index in respawn_indices:
+                                    P[map_i, respawn_index, l]= (1 - Constants.CURRENT_PROB[i][j])*respawn_probability
+                                    count += (1 - Constants.CURRENT_PROB[i][j]) * respawn_probability
+                                print(f"count wo current 5: {count}")
                         else:
                             #If you are outside the map, you go home with probability respawn_probability, 
-                            P[map_i, respawn_indices, l] = (1-Constants.CURRENT_PROB[i][j])*respawn_probability
+                            for respawn_index in respawn_indices:
+                                P[map_i, respawn_index, l] = (1-Constants.CURRENT_PROB[i][j])*respawn_probability
+                                count += (1-Constants.CURRENT_PROB[i][j])*respawn_probability
+                            print(f"count wo current 6: {count}")
                         # ––––– apply current –-------
                         #check wherer you'd end up WITH current
                         current_i, current_j = compute_state_plus_currents(no_current_i,no_current_j, Constants)
@@ -95,33 +113,50 @@ def compute_matrix_Piju(Constants):
                                 if all(point != (moved_swan_x, moved_swan_y) for point in path):
                                     #if no problem arises, you go to the designated x with probability p_current
                                     P[map_i,state2idx([current_i,current_j,moved_swan_x, moved_swan_y]),l] = (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB
+                                    count += (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB
+                                    print(f"count w current 1: {count}")
                                 #the swan is moving and hits the drone
                                 else: 
-                                    P[map_i, respawn_indices, l] = (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB*respawn_probability
+                                    for respawn_index in respawn_indices:
+                                        P[map_i, respawn_index, l] = (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB*respawn_probability
+                                        count += (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB * respawn_probability
+                                    print(f"count w current 2: {count}")
                                 #if the swan is not moving and is not going to hit the drone
                                 if all(point != (i_swan, j_swan) for point in path):
                                     P[map_i,state2idx([current_i,current_j,i_swan, j_swan]),l] = (Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
+                                    count += (Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
+                                    print(f"count w current 3: {count}")
                                 #the swan is not moving and hits the drone
                                 else:
-                                   P[map_i, respawn_indices, l] = (Constants.CURRENT_PROB[i][j]) * (1- Constants.SWAN_PROB)*respawn_probability
+                                    for respawn_index in respawn_indices:
+                                        P[map_i, respawn_index, l] = (Constants.CURRENT_PROB[i][j]) * (1- Constants.SWAN_PROB)*respawn_probability
+                                        count += (Constants.CURRENT_PROB[i][j]) * (1- Constants.SWAN_PROB) * respawn_probability
+                                    print(f"count w current 4: {count}")
                             else:
                                 #if hitted by a static drone, you go home
-                                P[map_i, respawn_indices, l] = Constants.CURRENT_PROB[i][j]*respawn_probability
+                                for respawn_index in respawn_indices:
+                                    P[map_i, respawn_index, l] = Constants.CURRENT_PROB[i][j]*respawn_probability
+                                    count += Constants.CURRENT_PROB[i][j]*respawn_probability
+                                print(f"count w current 5: {count}")
                         # if you are outside the map you go home.
                         else:
-                            P[map_i, respawn_indices, l] = respawn_probability*Constants.CURRENT_PROB[i][j]
+                            for respawn_index in respawn_indices:
+                                P[map_i, respawn_index, l] = respawn_probability*Constants.CURRENT_PROB[i][j]
+                                count += Constants.CURRENT_PROB[i][j]*respawn_probability
+                            print(f"count w current 6: {count}")
+                        if np.abs(count - 1) > 1e-6:
+                            print("PROBLEM", count, i, j, i_swan, j_swan, l)
                             
-    np.savetxt("transition_matrix.csv", P.reshape(-1, P.shape[-1]), delimiter=",")
+    #np.savetxt("transition_matrix.csv", P.reshape(-1, P.shape[-1]), delimiter=",")
         
-        
+    
     # Calcola la somma delle probabilità per ogni stato iniziale e azione
     somme = (P.sum(axis=1))  # Somma lungo la dimensione degli stati successivi (asse 1)
-
     # Imposta una tolleranza per confronti numerici
     tolleranza = 1e-6
 
     # Identifica le combinazioni di stato e azione con somme errate
-    stati_azioni_errati = np.where(np.abs(somme - 1) > tolleranza)
+    stati_azioni_errati = np.where((np.abs(somme - 1) > tolleranza) & (np.abs(somme) > tolleranza))
     # Apri un file di testo per scrivere i risultati
     with open('analisi_problemi.txt', 'w') as file:
         if stati_azioni_errati[0].size > 0:
