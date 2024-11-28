@@ -155,9 +155,7 @@ def h_fun(idx_state, idx_input):
     # Ottieni lo stato corrente (x_drone, y_drone, x_swan, y_swan)
     x_drone, y_drone, x_swan, y_swan = (int(value) for value in idx2state(idx_state))
 
-    #check if the drone is outside the map
-    if not (0 <= x_drone < Constants.M and 0 <= y_drone < Constants.N):
-        return 1  # outise of the map
+    
     
     # Calcola la nuova posizione del drone con ingresso e corrente
     current_i, current_j = Constants.FLOW_FIELD[x_drone,y_drone]
@@ -165,6 +163,9 @@ def h_fun(idx_state, idx_input):
     new_y_drone = y_drone + Constants.INPUT_SPACE[idx_input][1] + current_j
     path = bresenham((x_drone, y_drone), (new_x_drone, new_y_drone))
     static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
+    #check if the moved drone is outside the map
+    if not (0 <= new_x_drone < Constants.M and 0 <= new_y_drone < Constants.N):
+        return 1  # outise of the map
     # Check for static drone collision in the path from start to end (input and current)
     if any(tuple(point) in static_drones for point in path):
         return 1

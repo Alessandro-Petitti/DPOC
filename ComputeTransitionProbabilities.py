@@ -40,8 +40,7 @@ def compute_matrix_Piju(Constants):
                     map_i = state2idx([i,j,i_swan, j_swan]) 
                     if i == i_swan and j == j_swan:
                             continue
-                    for l in range(Constants.L): # iterate over all input
-                        print("The count has restarted", map_i, l)
+                    for l in range(Constants.L): # iterate over all input                    
                         #----- no current applied ----------
                         #check where you'd end up WITHOUTH current
                         no_current_i, no_current_j = compute_state_with_input(i,j,l, Constants)

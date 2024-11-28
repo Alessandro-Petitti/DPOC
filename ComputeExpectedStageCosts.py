@@ -36,6 +36,7 @@ def compute_expected_stage_cost(Constants):
         np.array: Expected stage cost Q of shape (K,L)
     """
     Q = np.ones((Constants.K, Constants.L)) * np.inf
+    static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
     for iState in range(0,Constants.K):
         for iInput in range(0,Constants.L):
             input_vec = idx2input(iInput)
@@ -43,8 +44,10 @@ def compute_expected_stage_cost(Constants):
             #print(f"h_fun: {h_fun(iState)}")
             state = idx2state(iState)
             #check if state is not valid i.e.drone is the same position of the swan:
-            if state[0] == state[2] and state[1] == state[3]:
+            if (state[0] == state[2] and state[1] == state[3]):
                 Q[iState,iInput] = 0
+            elif (state[0], state[1]) in static_drones:
+                Q[iState, iInput] = 0
             else:
                 Q[iState,iInput] = Constants.TIME_COST +Constants.THRUSTER_COST*(np.abs(input_vec[0])+np.abs(input_vec[1]))+h_fun(iState,iInput)*Constants.DRONE_COST
         
