@@ -154,15 +154,13 @@ def h_fun(idx_state, idx_input):
     """
     # Ottieni lo stato corrente (x_drone, y_drone, x_swan, y_swan)
     x_drone, y_drone, x_swan, y_swan = (int(value) for value in idx2state(idx_state))
-
-    
-    
     # Calcola la nuova posizione del drone con ingresso e corrente
     current_i, current_j = Constants.FLOW_FIELD[x_drone,y_drone]
     new_x_drone = x_drone + Constants.INPUT_SPACE[idx_input][0] + current_i
     new_y_drone = y_drone + Constants.INPUT_SPACE[idx_input][1] + current_j
     path = bresenham((x_drone, y_drone), (new_x_drone, new_y_drone))
     static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
+
     #check if the moved drone is outside the map
     if not (0 <= new_x_drone < Constants.M and 0 <= new_y_drone < Constants.N):
         return 1  # outise of the map
@@ -251,7 +249,6 @@ def generate_respawn_indices(Constants):
     Generates all the valid respawn states indices for the drone.
     """
     start_x, start_y = Constants.START_POS
-    print(f"start_x: {start_x}, start_y: {start_y}")
     # all possible states but the starting one
     respawn_states = [
         state2idx([start_x, start_y, xswan, yswan])

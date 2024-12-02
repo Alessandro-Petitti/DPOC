@@ -19,37 +19,54 @@
 
 import numpy as np
 from utils import *
-
+from ComputeTransitionProbabilities import *
 
 def compute_expected_stage_cost(Constants):
     """Computes the expected stage cost for the given problem.
-
     It is of size (K,L) where:
         - K is the size of the state space;
         - L is the size of the input space; and
         - Q[i,l] corresponds to the expected stage cost incurred when using input l at state i.
 
     Args:
-        Constants: The constants describing the problem instance.
+        Constants: The Constants describing the problem instance.
 
     Returns:
         np.array: Expected stage cost Q of shape (K,L)
     """
     Q = np.ones((Constants.K, Constants.L)) * np.inf
-    static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
-    for iState in range(0,Constants.K):
-        for iInput in range(0,Constants.L):
-            input_vec = idx2input(iInput)
-            #print(f"State: {iState}, Input: {iInput}, Input_vec: {input_vec}")
-            #print(f"h_fun: {h_fun(iState)}")
-            state = idx2state(iState)
-            #check if state is not valid i.e.drone is the same position of the swan:
-            if (state[0] == state[2] and state[1] == state[3]):
-                Q[iState,iInput] = 0
-            elif (state[0], state[1]) in static_drones:
-                Q[iState, iInput] = 0
+
+    static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)
+    respawn_indices = generate_respawn_indices(Constants)
+    P  = compute_transition_probabilities(Constants)
+    count_over_05 = 0
+    count_under_05 = 0
+    for i_state in range(Constants.K):
+        for i_input in range(Constants.L):
+            input_vec = idx2input(i_input)
+            state = idx2state(i_state)
+
+            # Invalid states (drone overlaps swan or static drone)
+            if (state[0] == state[2] and state[1] == state[3]) or (state[0], state[1]) in static_drones:
+                Q[i_state, i_input] = 0
             else:
-                Q[iState,iInput] = Constants.TIME_COST +Constants.THRUSTER_COST*(np.abs(input_vec[0])+np.abs(input_vec[1]))+h_fun(iState,iInput)*Constants.DRONE_COST
+                # Calculate the probability of reaching a respawn state
         
-    
+                h_value = sum(P[i_state, respawn_indices, i_input])
+               # print(f"h_value: {h_value}")
+                if h_value >0.5:
+                    h_value = 1
+                    count_over_05 += 1  
+                else:
+                    h_value = 0
+                    count_under_05 += 1
+                # Calculate the expected stage cost
+                #h_value = h_with_disturbances_expected(i_state, i_input, Constants) + respawn_probability
+                Q[i_state, i_input] = (Constants.TIME_COST +
+                                       Constants.THRUSTER_COST * (abs(input_vec[0]) + abs(input_vec[1])) +
+                                       h_value * Constants.DRONE_COST)
+
+    print(f"total over 0.5: {count_over_05}, total under 0.5: {count_under_05},total h_values: {np.shape(Q)}")
     return Q
+
+        

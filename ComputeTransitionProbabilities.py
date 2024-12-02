@@ -41,6 +41,8 @@ def compute_matrix_Piju(Constants):
                             continue
                     elif tuple([i,j]) in static_drones:
                         continue
+                    elif i== Constants.GOAL_POS[0] and j == Constants.GOAL_POS[1]:
+                        continue
                     for l in range(Constants.L): # iterate over all input                    
                         #----- no current applied ----------
                         #check where you'd end up WITHOUTH current
