@@ -52,20 +52,26 @@ if __name__ == "__main__":
         passed = True
         P_true = file["P"]
         # Trova gli indici in cui le due matrici non sono uguali
-        different_indices = np.where(~np.isclose(P, P_true, rtol=1e-4, atol=1e-7))
+        #different_indices = np.where(~np.isclose(P, P_true, rtol=1e-4, atol=1e-7))
+        different_indices = np.where((P_true == 0) & (P != 0))
+
+        print(f"number of different indices: {np.shape(different_indices)}")
+        
         respawn_probability = 1/(Constants.M*Constants.N-1)
         # Trasforma gli indici in una lista di tuple
         list_of_indices = list(zip(different_indices[0], different_indices[1], different_indices[2]))
-        
-        i = 231
+        #list_of_indices_tot = list(zip(different_indices_tot[0], different_indices_tot[1], different_indices_tot[2]))
+        i = 0
         static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)
         starting_state = idx2state(list_of_indices[i][0])
         ending_state = idx2state(list_of_indices[i][1])
+        print(f"index for input: {list_of_indices[i][2]}")
         input = idx2input(list_of_indices[i][2])
         dx, dy = Swan_movment_to_catch_drone(starting_state[2], starting_state[3], starting_state[0], starting_state[1])
         moved_swan_x = starting_state[2] + dx
         moved_swan_y = starting_state[3]+ dy
         #get the shape and the first 5 different indices
+        print(f"index of arrival state: {list_of_indices[i][1]}")
         print(f"shape: {np.shape(list_of_indices)}")
         print(f"first 5 different indices: {list_of_indices[:5]}")
         #get the state corresponding to the first 5 different indices, both i,j and also the input values:
@@ -91,7 +97,8 @@ if __name__ == "__main__":
         #print the path from initial state to final state plus current effect
         print(f"path from initial state to final state plus current effect: {bresenham((int(starting_state[0]),int(starting_state[1])),(int(n_x+input[0]),int(n_y+input[1])))}")
         #print respawn probability
-        print(f"(p_current)*(p_swan): {(1-Constants.CURRENT_PROB[int(starting_state[0])][int(starting_state[1])])*(1-Constants.SWAN_PROB)*respawn_probability}")
+        print(f"(p_current)*(p_swan): {(Constants.CURRENT_PROB[4][1])*(Constants.SWAN_PROB)}")
+        
         print("--------------------")
 
         #calculate the probability of state = starting_state[0],int(starting_state[1]),moved_swan_x, moved_swan_y

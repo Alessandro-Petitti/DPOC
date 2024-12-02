@@ -101,7 +101,7 @@ def compute_matrix_Piju(Constants):
                             #check if collision with static drones
                             if not any(tuple(point) in static_drones for point in path):
                                 #if the swan is moving and is not going to hit the drone
-                                if all(point != (moved_swan_x, moved_swan_y) for point in path):
+                                if current_input_state_i!=moved_swan_x or current_input_state_j != moved_swan_y:
                                     #if no problem arises, you go to the designated x with probability p_current
                                     P[map_i,state2idx([current_input_state_i,current_input_state_j,moved_swan_x, moved_swan_y]),l] += (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB
                                     
@@ -111,7 +111,7 @@ def compute_matrix_Piju(Constants):
                                         P[map_i, respawn_index, l] += (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB*respawn_probability
                                         
                                 #if the swan is not moving and is not going to hit the drone
-                                if all(point != (i_swan, j_swan) for point in path):
+                                if current_input_state_i != i_swan or current_input_state_j != j_swan:
                                     P[map_i,state2idx([current_input_state_i,current_input_state_j,i_swan, j_swan]),l] += (Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
                                     
                                 #the swan is not moving and hits the drone

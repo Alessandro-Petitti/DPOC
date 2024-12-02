@@ -251,7 +251,7 @@ def generate_respawn_indices(Constants):
     Generates all the valid respawn states indices for the drone.
     """
     start_x, start_y = Constants.START_POS
-    
+    print(f"start_x: {start_x}, start_y: {start_y}")
     # all possible states but the starting one
     respawn_states = [
         state2idx([start_x, start_y, xswan, yswan])
