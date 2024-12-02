@@ -28,7 +28,6 @@ def compute_matrix_Piju(Constants):
 
     #set of admissible respawn states expressed as indices.
     respawn_indices = generate_respawn_indices(Constants)
-    print(f"respawn_indices length: {len(respawn_indices)}")
     respawn_probability = 1/(Constants.M*Constants.N-1)
     # set of static drone positions  (Use a set for quick lookups)
     static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
@@ -40,6 +39,8 @@ def compute_matrix_Piju(Constants):
                     map_i = state2idx([i,j,i_swan, j_swan]) 
                     if i == i_swan and j == j_swan:
                             continue
+                    elif tuple([i,j]) in static_drones:
+                        continue
                     for l in range(Constants.L): # iterate over all input                    
                         #----- no current applied ----------
                         #check where you'd end up WITHOUTH current
@@ -88,17 +89,21 @@ def compute_matrix_Piju(Constants):
                                 
                         # ––––– apply current –-------
                         #check wherer you'd end up WITH current
-                        current_i, current_j = compute_state_plus_currents(no_current_i,no_current_j, Constants)
+                        current_i_val, current_j_val = compute_state_plus_currents(i,j, Constants)
+                        current_input_state_i ,current_input_state_j = compute_state_with_input(current_i_val,current_j_val,l, Constants)
                         # Genera la linea tra i punti di partenza e arrivo senza corrente
-                        path = bresenham((i, j), (current_i, current_j))
+                        path = bresenham((i, j), (current_input_state_i, current_input_state_j))
+                        # remove first element of path because is the starting position if the path is logner than 1
+                        if len(path) > 1:
+                            path = path[1:]
                         #check if you end up outside the map and that the swan is not hitting the drone
-                        if 0 <= current_i < Constants.N and 0 <= current_j < Constants.M:
+                        if 0 <= current_input_state_i < Constants.N and 0 <= current_input_state_j < Constants.M:
                             #check if collision with static drones
                             if not any(tuple(point) in static_drones for point in path):
                                 #if the swan is moving and is not going to hit the drone
                                 if all(point != (moved_swan_x, moved_swan_y) for point in path):
                                     #if no problem arises, you go to the designated x with probability p_current
-                                    P[map_i,state2idx([current_i,current_j,moved_swan_x, moved_swan_y]),l] += (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB
+                                    P[map_i,state2idx([current_input_state_i,current_input_state_j,moved_swan_x, moved_swan_y]),l] += (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB
                                     
                                 #the swan is moving and hits the drone
                                 else: 
@@ -107,7 +112,7 @@ def compute_matrix_Piju(Constants):
                                         
                                 #if the swan is not moving and is not going to hit the drone
                                 if all(point != (i_swan, j_swan) for point in path):
-                                    P[map_i,state2idx([current_i,current_j,i_swan, j_swan]),l] += (Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
+                                    P[map_i,state2idx([current_input_state_i,current_input_state_j,i_swan, j_swan]),l] += (Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
                                     
                                 #the swan is not moving and hits the drone
                                 else:
