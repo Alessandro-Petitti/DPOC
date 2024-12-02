@@ -56,10 +56,8 @@ if __name__ == "__main__":
         respawn_probability = 1/(Constants.M*Constants.N-1)
         # Trasforma gli indici in una lista di tuple
         list_of_indices = list(zip(different_indices[0], different_indices[1], different_indices[2]))
-        # find the first list_of_indices[i] such that list_of_indices[i][0] != 7
-        #index = next(i for i, element in enumerate(list_of_indices) if idx2state(list_of_indices[i][0])[0] != 2)
-        #print(f"L'indice è: {index}")
-        i = 0
+        
+        i = 231
         static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)
         starting_state = idx2state(list_of_indices[i][0])
         ending_state = idx2state(list_of_indices[i][1])
@@ -86,14 +84,14 @@ if __name__ == "__main__":
         n_x,n_y = compute_state_plus_currents(int(starting_state[0]),int(starting_state[1]), Constants)
         no_curr_i,no_curr_j = compute_state_with_input(int(starting_state[0]),int(starting_state[1]),list_of_indices[i][2], Constants)
         #print(f"is the input and current moving the drone onto static ones?",tuple([no_curr_i, no_curr_j]) in static_drones)
-        print(f"new state with input: {no_curr_i,no_curr_j}")
-        print(f"new state with currend and input: {n_x+input[0],n_y+input[1]}")
+        print(f"new state with input ( no swan movement ): {no_curr_i,no_curr_j,starting_state[2],starting_state[3]}")   
+        print(f"new state with currend and input ( no swan movement ): {n_x+input[0],n_y+input[1],starting_state[2],starting_state[3]}")
         #print the moved swan
         print(f"moved swan: {moved_swan_x,moved_swan_y}")
         #print the path from initial state to final state plus current effect
         print(f"path from initial state to final state plus current effect: {bresenham((int(starting_state[0]),int(starting_state[1])),(int(n_x+input[0]),int(n_y+input[1])))}")
         #print respawn probability
-        print(f"(1-p_current)*(1-p_swan): {(1-Constants.CURRENT_PROB[int(starting_state[0])][int(starting_state[1])])*(1-Constants.SWAN_PROB)}")
+        print(f"(p_current)*(p_swan): {(1-Constants.CURRENT_PROB[int(starting_state[0])][int(starting_state[1])])*(1-Constants.SWAN_PROB)*respawn_probability}")
         print("--------------------")
 
         #calculate the probability of state = starting_state[0],int(starting_state[1]),moved_swan_x, moved_swan_y
@@ -103,7 +101,7 @@ if __name__ == "__main__":
         print(f"going from initial state to ", [int(starting_state[0]),int(starting_state[1]),int(moved_swan_x), int(moved_swan_y)])
         print(f"probability of moved swan state TRUE: {movd_swan_state_probabilty}")
         print(f"our probability of moved swan state: {our_moved_swan_state_probability}")
-
+        print("--------------------")
         #calculate the probability of state = [int(starting_state[0])+Constants.FLOW_FIELD[int(starting_state[0]),int(starting_state[1])+Constants.FLOW_FIELD[int(starting_state[2]),
         # int(starting_state[2]),int(starting_state[3]) ]
         idx_current_state = state2idx([n_x+input[0],n_y+input[1],int(starting_state[2]), int(starting_state[3])])
@@ -112,6 +110,14 @@ if __name__ == "__main__":
         print(f"going from initial state to ", [n_x+input[0],n_y+input[1],int(starting_state[2]), int(starting_state[3])])
         print(f"probability of current state TRUE: {current_state_probabilty}")
         print(f"our probability of current state: {our_current_state_probability}")
+        print("--------------------")
+        #calculate the probability of state = [int(starting_state[0])+Constants.FLOW_FIELD[int(starting_state[0]),int(starting_state[1])+Constants.FLOW_FIELD[int(starting_state[2]),
+        swan_and_current_state = state2idx([n_x+input[0],n_y+input[1],int(moved_swan_x), int(moved_swan_y)])
+        current_state_probabilty = P_true[list_of_indices[i][0],swan_and_current_state,list_of_indices[i][2]]
+        our_current_state_probability = P[list_of_indices[i][0],swan_and_current_state,list_of_indices[i][2]]
+        print(f"going from initial",starting_state,"state to ", idx2state(swan_and_current_state))
+        print(f"probability of swand and current state TRUE: {current_state_probabilty}")
+        print(f"our probability of swand and current state: {our_current_state_probability}")
         break
 
         
