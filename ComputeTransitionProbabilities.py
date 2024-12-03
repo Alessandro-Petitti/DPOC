@@ -31,10 +31,10 @@ def compute_matrix_Piju(Constants):
     respawn_probability = 1/(Constants.M*Constants.N-1)
     # set of static drone positions  (Use a set for quick lookups)
     static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
-    for i in range(Constants.N):# iterate over all x
-        for j in range(Constants.M): # iterate over all y
-            for i_swan in range(Constants.N): # iterate over all x for the swan 
-                for j_swan in range(Constants.M): # iterate over all y for the swan
+    for i in range(Constants.M):# iterate over all x
+        for j in range(Constants.N): # iterate over all y
+            for i_swan in range(Constants.M): # iterate over all x for the swan 
+                for j_swan in range(Constants.N): # iterate over all y for the swan
                     # current state as index
                     map_i = state2idx([i,j,i_swan, j_swan]) 
                     if i == i_swan and j == j_swan:
@@ -55,7 +55,7 @@ def compute_matrix_Piju(Constants):
                         moved_swan_y = j_swan + dy
                         
                         #check if you end un inside the map and that the swan is not hitting the drone
-                        if 0 <= no_current_i < Constants.N and 0 <= no_current_j < Constants.M:
+                        if 0 <= no_current_i < Constants.M and 0 <= no_current_j < Constants.N:
                             #chek for static collision
                             if not tuple([no_current_i, no_current_j]) in static_drones:
                                 #if not hitted, check for swan collision
@@ -99,7 +99,7 @@ def compute_matrix_Piju(Constants):
                         if len(path) > 1:
                             path = path[1:]
                         #check if you end up outside the map and that the swan is not hitting the drone
-                        if 0 <= current_input_state_i < Constants.N and 0 <= current_input_state_j < Constants.M:
+                        if 0 <= current_input_state_i < Constants.M and 0 <= current_input_state_j < Constants.N:
                             #check if collision with static drones
                             if not any(tuple(point) in static_drones for point in path):
                                 #if the swan is moving and is not going to hit the drone

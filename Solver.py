@@ -20,7 +20,7 @@
 
 import numpy as np
 from utils import *
-
+from scipy.optimize import linprog
 
 def solution(P, Q, Constants):
     """Computes the optimal cost and the optimal control input for each
@@ -53,5 +53,41 @@ def solution(P, Q, Constants):
 
     # TODO implement Value Iteration, Policy Iteration,
     #      Linear Programming or a combination of these
+
+    # Parametri di esempio
+
+    # Definire c come vettore di -1
+    state_size = Constants.K
+    c = -np.ones(state_size)
+
+    # Creazione della matrice A
+    A = []
+    for u in range(9):
+        A_u = np.eye(state_size) - P[:, :, u]
+        A.append(A_u)
+    A = np.vstack(A)
+    # Definizione del vettore b
+    b = Q.flatten(order = "F")
+    # Risolvi il problema di LP
+    result = linprog(c, A_ub=A, b_ub=b, method='highs')
+
+    if result.success:
+        J_opt = result.x
+        u_opt = np.zeros(state_size, dtype=int)  # Array per memorizzare l'azione ottima per ciascuno stato
+        for i in range(state_size):
+            min_cost = float('inf')
+            best_action = None
+            # Per ciascuna azione, calcola il costo e scegli l'azione con il costo minore
+            for u in range(9):
+                cost = Q[i, u] + np.dot(P[i, :, u], J_opt)
+                if cost < min_cost:
+                    min_cost = cost
+                    best_action = u
+                    u_opt[i] = best_action
+        print("Soluzione ottima trovata!")
+    else:
+        print("Ottimizzazione fallita:", result.message)
+
+
 
     return J_opt, u_opt

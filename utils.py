@@ -179,7 +179,7 @@ def h_fun(idx_state, idx_input):
     return 0  # No need for a new drone
 
 def compute_state_plus_currents(i,j, Constants):
-    if 0 <= i < Constants.N and 0 <= j < Constants.M:    
+    if 0 <= i < Constants.M and 0 <= j < Constants.N:    
         current_i, current_j = Constants.FLOW_FIELD[i,j]
         new_i = i + current_i
         new_j = j + current_j

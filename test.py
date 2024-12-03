@@ -61,6 +61,9 @@ if __name__ == "__main__":
       
         if not np.allclose(Q, file["Q"], rtol=1e-4, atol=1e-7):
             respawn_indices = generate_respawn_indices(Constants)
+            print("---- respawn states ----")
+            for i in respawn_indices:
+                print(idx2state(i))
             print("Wrong expected stage costs")
             passed = False
             # Get the indices where Q differs from Q_true
@@ -72,13 +75,17 @@ if __name__ == "__main__":
             print(f"cost for drone: {Constants.DRONE_COST}")
             print("-----------------")
             # Convert the first few indices to states and inputs
+            static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
             for i in range(min(1, len(idx[0]))):
-                i =0
-                state = idx2state(idx[0][i])  # Convert state index to state
+                i =0   
+                state = idx2state(idx[0][i]) # Convert state index to state
+                i_state = state2idx(state)
                 input_ = idx2input(idx[1][i])  # Convert input index to input
-                print(f"Mismatch {i+1}: State: {state}, Input: {input_}")
+                i_input = input2idx(input_[0], input_[1])
+                print(sum(P[int(i_state), respawn_indices, int(i_input) ]))
+                print(f"Mismatch {i+1}: State: {state}, Input: {input_}, currents value {Constants.FLOW_FIELD[int(state[0]), int(state[1])]}")
                 print(f"Expected Q: {Q_true[idx[0][i], idx[1][i]]}, Computed Q: {Q[idx[0][i], idx[1][i]]}")
-                print(f"sum of probability of gettng a new drone from state {state} and input {input_}, is: {sum(P_true[idx[0][i], respawn_indices, idx[1][i]])}")
+                print(f"sum of probability of gettng a new drone from state {state} and input {input_}, is: {sum(P_true[idx[0][i], respawn_indices, idx[1][i]])}")            
         else:
             print("Correct expected stage costs")
 
@@ -86,9 +93,12 @@ if __name__ == "__main__":
         [J_opt, u_opt] = solution(P, Q, Constants)
         if not np.allclose(J_opt, file["J"], rtol=1e-4, atol=1e-7):
             print("Wrong optimal cost")
+            idx = np.where(np.abs(J_opt - file["J"]) > 1e-4)
+            print("---- mismatches ----")
+            print(f"Number of mismatches: {len(idx[0])}")
             passed = False
         else:
             print("Correct optimal cost")
-        break
+        
 
     print("-----------")
