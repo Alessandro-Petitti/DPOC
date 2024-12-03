@@ -57,10 +57,28 @@ if __name__ == "__main__":
             passed = False
         else:
             print("Correct transition probabilities")
-
+        Q_true = file["Q"]
+      
         if not np.allclose(Q, file["Q"], rtol=1e-4, atol=1e-7):
+            respawn_indices = generate_respawn_indices(Constants)
             print("Wrong expected stage costs")
             passed = False
+            # Get the indices where Q differs from Q_true
+            idx = np.where(np.abs(Q - Q_true) > 1e-4)
+            print("---- mismatches ----")
+            print(f"Number of mismatches: {len(idx[0])}")
+            print(f"cost for time: {Constants.TIME_COST}")
+            print(f"cost for thruster: {Constants.THRUSTER_COST}")
+            print(f"cost for drone: {Constants.DRONE_COST}")
+            print("-----------------")
+            # Convert the first few indices to states and inputs
+            for i in range(min(1, len(idx[0]))):
+                i =0
+                state = idx2state(idx[0][i])  # Convert state index to state
+                input_ = idx2input(idx[1][i])  # Convert input index to input
+                print(f"Mismatch {i+1}: State: {state}, Input: {input_}")
+                print(f"Expected Q: {Q_true[idx[0][i], idx[1][i]]}, Computed Q: {Q[idx[0][i], idx[1][i]]}")
+                print(f"sum of probability of gettng a new drone from state {state} and input {input_}, is: {sum(P_true[idx[0][i], respawn_indices, idx[1][i]])}")
         else:
             print("Correct expected stage costs")
 
