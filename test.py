@@ -18,6 +18,7 @@
 """
 
 import pickle
+import time 
 
 import numpy as np
 from ComputeExpectedStageCosts import compute_expected_stage_cost
@@ -90,7 +91,9 @@ if __name__ == "__main__":
             print("Correct expected stage costs")
 
         # normal solution
+        timer = time.time()
         [J_opt, u_opt] = solution(P, Q, Constants)
+        print("Time elapsed: ", time.time() - timer)
         if not np.allclose(J_opt, file["J"], rtol=1e-4, atol=1e-7):
             print("Wrong optimal cost")
             idx = np.where(np.abs(J_opt - file["J"]) > 1e-4)

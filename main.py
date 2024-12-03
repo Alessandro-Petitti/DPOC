@@ -19,7 +19,7 @@
 """
 
 import sys, os
-
+import time
 import numpy as np
 from ComputeExpectedStageCosts import compute_expected_stage_cost
 from ComputeTransitionProbabilities import compute_transition_probabilities
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # Set the following to True as you progress with the files
     TRANSITION_PROBABILITIES_IMPLEMENTED = True
     STAGE_COSTS_IMPLEMENTED = True
-    SOLUTION_IMPLEMENTED = False
+    SOLUTION_IMPLEMENTED = True
 
     # Compute transition probabilities
     if TRANSITION_PROBABILITIES_IMPLEMENTED:
@@ -63,10 +63,10 @@ if __name__ == "__main__":
     # Solve the stochastic shortest path problem
     if SOLUTION_IMPLEMENTED:
         sys.stdout.write("[ ] Solving discounted stochastic shortest path problem...")
-
+        timer = time.time()
         # TODO implement this function in Solver.py
         J_opt, u_opt = solution(P, Q, Constants)
-
+        print("Time elapsed: ", time.time() - timer)
         assert J_opt.shape[0] == Constants.K, "J_opt dimensions do not match the world."
         assert u_opt.shape[0] == Constants.K, "u_opt dimensions do not match the world."
 

@@ -58,6 +58,21 @@ def solution(P, Q, Constants):
 
     # Definire c come vettore di -1
     state_size = Constants.K
+    # for it in range(1000):
+    #     update = 0
+    #     for i in range(state_size):
+    #         temp = np.min(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
+    #         diff = temp - J_opt[i]
+    #         if diff > update:
+    #             update = diff
+    #         J_opt[i] = temp
+    #     if update < 1e-4:
+    #         break   
+    # for i in range(state_size):        
+    #     u_opt[i] = np.argmin(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
+
+
+
     c = -np.ones(state_size)
 
     # Creazione della matrice A
@@ -84,7 +99,7 @@ def solution(P, Q, Constants):
                     min_cost = cost
                     best_action = u
                     u_opt[i] = best_action
-        print("Soluzione ottima trovata!")
+        #print("Soluzione ottima trovata!")
     else:
         print("Ottimizzazione fallita:", result.message)
 
