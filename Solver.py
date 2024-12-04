@@ -21,8 +21,9 @@
 import numpy as np
 from utils import *
 from scipy.optimize import linprog
+from scipy.sparse import vstack, eye, csr_matrix
 
-def solution(P, Q, Constants):
+def solution(P, Q, Constants,method):
     """Computes the optimal cost and the optimal control input for each
     state of the state space solving the stochastic shortest
     path problem by:
@@ -50,59 +51,88 @@ def solution(P, Q, Constants):
 
     J_opt = np.zeros(Constants.K)
     u_opt = np.zeros(Constants.K)
-
-    # TODO implement Value Iteration, Policy Iteration,
-    #      Linear Programming or a combination of these
-
-    # Parametri di esempio
-
-    # Definire c come vettore di -1
     state_size = Constants.K
-    # for it in range(1000):
-    #     update = 0
-    #     for i in range(state_size):
-    #         temp = np.min(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
-    #         diff = temp - J_opt[i]
-    #         if diff > update:
-    #             update = diff
-    #         J_opt[i] = temp
-    #     if update < 1e-4:
-    #         break   
-    # for i in range(state_size):        
-    #     u_opt[i] = np.argmin(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
+    if method == "value_iteration":
+    #---------Value Iteration---------
+        for it in range(1000):
+            update = 0
+            for i in range(state_size):
+                temp = np.min(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
+                diff = temp - J_opt[i]
+                if diff > update:
+                    update = diff
+                J_opt[i] = temp
+            if update < 1e-4:
+                break   
+        for i in range(state_size):        
+            u_opt[i] = np.argmin(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
 
+    elif method == "linear_programing":
+    #---------Linear Programming---------
+        c = -np.ones(state_size)
+        # Creazione della matrice A
+        A = []
+        # for u in range(9):
+        #     A_u = np.eye(state_size) - P[:, :, u]
+        #     A.append(A_u)
+        # A = np.vstack(A)
+        
+        A = vstack([csr_matrix(np.eye(state_size) - P[:, :, u]) for u in range(9)])
+        # Definizione del vettore b
+        b = Q.flatten(order = "F")
+        # Risolvi il problema di LP
+        result = linprog(c, A_ub=A, b_ub=b, method='highs-ipm')
 
+        if result.success:
+            J_opt = result.x
+            u_opt = np.zeros(state_size, dtype=int)  # Array per memorizzare l'azione ottima per ciascuno stato
+            for i in range(state_size):
+                min_cost = float('inf')
+                best_action = None
+                # Per ciascuna azione, calcola il costo e scegli l'azione con il costo minore
+                for u in range(9):
+                    cost = Q[i, u] + np.dot(P[i, :, u], J_opt)
+                    if cost < min_cost:
+                        min_cost = cost
+                        best_action = u
+                        u_opt[i] = best_action
+        else:
+            print("Ottimizzazione fallita:", result.message)
 
-    c = -np.ones(state_size)
+    elif method == "policy_iteration":
+    # ---------Policy Iteration---------
+        u_opt = np.zeros(state_size, dtype=int)
+        while True:
+            # Policy Evaluation: Solve (I - P_pi) * J = Q_pi
+            P_pi = np.zeros((Constants.K, Constants.K))  # P_pi should be K x K, representing state-to-state transitions
+            Q_pi = np.zeros(Constants.K)
 
-    # Creazione della matrice A
-    A = []
-    for u in range(9):
-        A_u = np.eye(state_size) - P[:, :, u]
-        A.append(A_u)
-    A = np.vstack(A)
-    # Definizione del vettore b
-    b = Q.flatten(order = "F")
-    # Risolvi il problema di LP
-    result = linprog(c, A_ub=A, b_ub=b, method='highs')
-
-    if result.success:
-        J_opt = result.x
-        u_opt = np.zeros(state_size, dtype=int)  # Array per memorizzare l'azione ottima per ciascuno stato
-        for i in range(state_size):
-            min_cost = float('inf')
-            best_action = None
-            # Per ciascuna azione, calcola il costo e scegli l'azione con il costo minore
-            for u in range(9):
-                cost = Q[i, u] + np.dot(P[i, :, u], J_opt)
-                if cost < min_cost:
-                    min_cost = cost
-                    best_action = u
+            # Build P_pi and Q_pi for the current policy
+            for i in range(state_size):
+                P_pi[i, :] = P[i, :, u_opt[i]]  # Transition probabilities for the current policy
+                Q_pi[i] = Q[i, u_opt[i]]       # Costs for the current policy
+            
+            # Solve the linear system
+            A = np.eye(state_size) - P_pi  # (I - P_pi)
+            try:
+                J_opt = np.linalg.solve(A + 1e-8 * np.eye(state_size), Q_pi)  # Solve for J with regularization
+            except np.linalg.LinAlgError:
+                print("Singular matrix encountered, adding regularization term.")
+                J_opt = np.linalg.solve(A + 1e-8 * np.eye(state_size), Q_pi)  # Solve for J with regularization
+            
+            # Policy Improvement
+            policy_stable = True
+            for i in range(state_size):
+                # Find the best action for state i
+                best_action = np.argmin(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
+                if best_action != u_opt[i]:  # If the action changes, the policy is not stable
+                    policy_stable = False
                     u_opt[i] = best_action
-        #print("Soluzione ottima trovata!")
+            
+            # Terminate if the policy is stable
+            if policy_stable:
+                break
     else:
-        print("Ottimizzazione fallita:", result.message)
-
-
+        print("Metodo non implement")
 
     return J_opt, u_opt

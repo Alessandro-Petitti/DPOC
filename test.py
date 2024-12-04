@@ -40,6 +40,10 @@ if __name__ == "__main__":
 
         file = np.load("tests/test" + str(i) + ".npz")
         # Begin tests
+        print(f"Map size: {Constants.M}x{Constants.N}")
+        print(f"Number of drones: {Constants.N_DRONES}")
+        print(f"Cost for each drone: {Constants.DRONE_COST}, cost for trhuster: {Constants.THRUSTER_COST}, cost for time: {Constants.TIME_COST}")
+        print(f"swan probability {Constants.SWAN_PROB}")
         P = compute_transition_probabilities(Constants)
         
         if not np.all(
@@ -61,38 +65,13 @@ if __name__ == "__main__":
         Q_true = file["Q"]
       
         if not np.allclose(Q, file["Q"], rtol=1e-4, atol=1e-7):
-            respawn_indices = generate_respawn_indices(Constants)
-            print("---- respawn states ----")
-            for i in respawn_indices:
-                print(idx2state(i))
             print("Wrong expected stage costs")
-            passed = False
-            # Get the indices where Q differs from Q_true
-            idx = np.where(np.abs(Q - Q_true) > 1e-4)
-            print("---- mismatches ----")
-            print(f"Number of mismatches: {len(idx[0])}")
-            print(f"cost for time: {Constants.TIME_COST}")
-            print(f"cost for thruster: {Constants.THRUSTER_COST}")
-            print(f"cost for drone: {Constants.DRONE_COST}")
-            print("-----------------")
-            # Convert the first few indices to states and inputs
-            static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
-            for i in range(min(1, len(idx[0]))):
-                i =0   
-                state = idx2state(idx[0][i]) # Convert state index to state
-                i_state = state2idx(state)
-                input_ = idx2input(idx[1][i])  # Convert input index to input
-                i_input = input2idx(input_[0], input_[1])
-                print(sum(P[int(i_state), respawn_indices, int(i_input) ]))
-                print(f"Mismatch {i+1}: State: {state}, Input: {input_}, currents value {Constants.FLOW_FIELD[int(state[0]), int(state[1])]}")
-                print(f"Expected Q: {Q_true[idx[0][i], idx[1][i]]}, Computed Q: {Q[idx[0][i], idx[1][i]]}")
-                print(f"sum of probability of gettng a new drone from state {state} and input {input_}, is: {sum(P_true[idx[0][i], respawn_indices, idx[1][i]])}")            
         else:
             print("Correct expected stage costs")
 
-        # normal solution
+        
         timer = time.time()
-        [J_opt, u_opt] = solution(P, Q, Constants)
+        [J_opt, u_opt] = solution(P, Q, Constants, method="value_iteration")
         print("Time elapsed: ", time.time() - timer)
         if not np.allclose(J_opt, file["J"], rtol=1e-4, atol=1e-7):
             print("Wrong optimal cost")

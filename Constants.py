@@ -42,11 +42,11 @@ class Constants:
     # Feel free to tweak these to test your solution.
     # ----- World -----
     # State space constants
-    M = 10  # Size of the x axis (west to east)
-    N = 10 # Size of the y axis (south to north)
+    M = 5  # Size of the x axis (west to east)
+    N = 5# Size of the y axis (south to north)
 
     # Map constants
-    N_DRONES = 10  # Number of static drones
+    N_DRONES = 4  # Number of static drones
     # Generate unique coordinates for the start, goal and drone positions
     START_POS, GOAL_POS, DRONE_POS = generate_unique_coordinates(N_DRONES + 2, M, N)
 
