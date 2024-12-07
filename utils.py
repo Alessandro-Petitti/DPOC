@@ -93,6 +93,7 @@ def idx2state(idx):
     return state
 
 
+
 def state2idx(state):
     """Converts a given state into the corresponding index.
 
@@ -110,6 +111,57 @@ def state2idx(state):
         factor *= j
 
     return idx
+def state2idx_vectorialized(states):
+    """Converts an array of states into their corresponding indices.
+
+    Args:
+        states (np.ndarray): Array di forma (N, 4), dove ogni riga è (x, y, x, y).
+
+    Returns:
+        np.ndarray: Array di indici corrispondenti agli stati.
+    """
+    factors = np.array([1, Constants.M, Constants.M * Constants.N, Constants.M * Constants.N * Constants.M])
+    return np.dot(states, factors)
+
+def idx2state_vectorized(idx_array):
+    """
+    Converts a given array of indices into the corresponding states.
+
+    Args:
+        idx_array (np.ndarray): array of indices
+        Constants: Class containing problem constants, with attributes:
+            M (int), N (int)
+
+    Returns:
+        np.ndarray: array of states of shape (len(idx_array), 4)
+                    Each row is [x_drone, y_drone, x_swan, y_swan].
+    """
+    idx_array = np.asarray(idx_array)
+
+    # Allocazione array di output
+    # Dimensione: numero di indici x 4 dimensioni dello stato
+    states = np.empty((idx_array.size, 4), dtype=int)
+
+    # Decodifica vettoriale
+    # x_drone
+    states[:, 0] = idx_array % Constants.M
+    idx_tmp = idx_array // Constants.M
+
+    # y_drone
+    states[:, 1] = idx_tmp % Constants.N
+    idx_tmp = idx_tmp // Constants.N
+
+    # x_swan
+    states[:, 2] = idx_tmp % Constants.M
+    idx_tmp = idx_tmp // Constants.M
+
+    # y_swan
+    states[:, 3] = idx_tmp % Constants.N
+
+    return states
+
+
+
 
 def input2idx(ux, uy):
     mapping = {
@@ -185,6 +237,33 @@ def compute_state_plus_currents(i,j, Constants):
         new_j = j + current_j
         return (new_i, new_j)
     return (-1,-1)
+def compute_state_plus_currents_vectorialized(i, j, Constants):
+    """
+    Calcola le nuove coordinate considerando la corrente.
+
+    Args:
+        i (np.ndarray): Array delle coordinate x.
+        j (np.ndarray): Array delle coordinate y.
+        Constants: Oggetto con le costanti del problema.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Nuove coordinate (new_i, new_j).
+    """
+    # Creazione maschera per validità degli stati
+    valid_mask = (0 <= i) & (i < Constants.M) & (0 <= j) & (j < Constants.N)
+
+    # Calcola gli spostamenti dovuti alla corrente
+    current_i = np.zeros_like(i)
+    current_j = np.zeros_like(j)
+    current_i[valid_mask] = Constants.FLOW_FIELD[i[valid_mask], j[valid_mask], 0]
+    current_j[valid_mask] = Constants.FLOW_FIELD[i[valid_mask], j[valid_mask], 1]
+
+    # Applica gli spostamenti solo agli stati validi
+    new_i = np.where(valid_mask, i + current_i, -1)
+    new_j = np.where(valid_mask, j + current_j, -1)
+
+    return new_i, new_j
+
 
 def compute_state_with_input(i,j,l, Constants):
     if l > len(Constants.INPUT_SPACE):
@@ -224,7 +303,6 @@ def current_disturbance_map():
 def Swan_movment_to_catch_drone(x_swan, y_swan, x_drone, y_drone):
     # Calcolo dell'angolo θ usando atan2
     theta = np.arctan2(y_drone - y_swan, x_drone - x_swan)
-    
     # Mappatura dell'angolo θ ai quadranti
     if -np.pi/8 <= theta < np.pi/8:
         return (+1, 0)  # East (E)
@@ -260,4 +338,25 @@ def generate_respawn_indices(Constants):
     return np.array(respawn_states)
 
 
+def Swan_movment_to_catch_drone_vectorized(x_swan, y_swan, x_drone, y_drone):
+    # Calcolo dell'angolo theta
+    theta = np.arctan2(y_drone - y_swan, x_drone - x_swan)
 
+    # Creazione array per il movimento
+    movement = np.zeros((len(theta), 2), dtype=int)
+
+    # Mappatura dell'angolo theta ai movimenti nei vari quadranti
+    movement[(theta >= -np.pi/8) & (theta < np.pi/8)] = [1, 0]    # E
+    movement[(theta >= np.pi/8) & (theta < 3*np.pi/8)] = [1, 1]   # NE
+    movement[(theta >= 3*np.pi/8) & (theta < 5*np.pi/8)] = [0, 1] # N
+    movement[(theta >= 5*np.pi/8) & (theta < 7*np.pi/8)] = [-1, 1]# NW
+    movement[(theta >= 7*np.pi/8) | (theta < -7*np.pi/8)] = [-1, 0] # W
+    movement[(theta >= -7*np.pi/8) & (theta < -5*np.pi/8)] = [-1, -1] # SW
+    movement[(theta >= -5*np.pi/8) & (theta < -3*np.pi/8)] = [0, -1]  # S
+    movement[(theta >= -3*np.pi/8) & (theta < -np.pi/8)] = [1, -1]    # SE
+
+    # Se cigno e drone sono nella stessa posizione, dx e dy = 0
+    same_pos_mask = (x_swan == x_drone) & (y_swan == y_drone)
+    movement[same_pos_mask] = [0, 0]
+
+    return movement[:, 0], movement[:, 1]

@@ -26,6 +26,7 @@ from ComputeTransitionProbabilities import compute_transition_probabilities
 from Constants import Constants
 from Solver import solution
 from utils import *
+import prallel_Pij 
 
 if __name__ == "__main__":
     n_tests = 4
@@ -44,8 +45,66 @@ if __name__ == "__main__":
         print(f"Number of drones: {Constants.N_DRONES}")
         print(f"Cost for each drone: {Constants.DRONE_COST}, cost for trhuster: {Constants.THRUSTER_COST}, cost for time: {Constants.TIME_COST}")
         print(f"swan probability {Constants.SWAN_PROB}")
+        timer = time.time()
+        P = prallel_Pij.parallel_Pij(Constants)
+        print("Time elapsed with parallel computation: ", time.time() - timer)
+
+        #debug!
+        P_true = file["P"]
+        tolerance = 1e-4
+
+        # Differenza assoluta tra P e P_true
+        diff = np.abs(P - P_true)
+
+        # Maschera dei punti dove la differenza eccede la tolleranza
+        mask = diff > tolerance
+
+        # Trova gli indici (i, j, l) dei punti con differenze eccessive
+        i_indices, j_indices, l_indices = np.where(mask)
+
+        if len(i_indices) == 0:
+            print("Non ci sono differenze superiori alla tolleranza.")
+        else:
+            static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
+            respawn_probability = 1 / (Constants.M * Constants.N - 1)
+            print(f"numero di differenze superiori alla tolleranza: {len(i_indices)}")
+            print(f"static drones: {static_drones}")
+            print(f"goal state: {Constants.GOAL_POS}")
+            for idx in range(5):
+                i = i_indices[idx]
+                j = j_indices[idx]
+                l = l_indices[idx]
+
+                # Ricava gli stati di partenza e di arrivo se hai la funzione di decoding
+                # Se non l'hai, commenta queste righe e stampa solo gli indici
+                start_state = idx2state_vectorized(i)   # (x_drone_start, y_drone_start, x_swan_start, y_swan_start)
+                next_state = idx2state_vectorized(j)    # (x_drone_next, y_drone_next, x_swan_next, y_swan_next)
+
+                p_val = P[i, j, l]
+                p_true_val = P_true[i, j, l]
+
+                print(f"Diff > {tolerance} per i={i}, j={j}, l={l}")
+                print("Stato di partenza (x_drone, y_drone, x_swan, y_swan):", start_state)
+                print("Stato di arrivo   (x_drone, y_drone, x_swan, y_swan):", next_state)
+                print(f"input: {idx2input(l)}")
+                print(f"flow field value for starting state: {Constants.FLOW_FIELD[start_state[0][0],start_state[0][1]]} ")      
+                print(f"swan movment: {Swan_movment_to_catch_drone(start_state[0][2], start_state[0][3], start_state[0][0], start_state[0][1])}")
+                print("--- probability ---")              
+                print(f"(1-pcurrent)*(1-pswan): {(1 - Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(1- Constants.SWAN_PROB)}")
+                print(f"(pcurrent)*(1-pswan): {(Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(1- Constants.SWAN_PROB)}")
+                print(f"(1-pcurrent)*(pswan): {(1 - Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(Constants.SWAN_PROB)}")
+                print(f"(pcurrent)*(pswan): {(Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(Constants.SWAN_PROB)}")
+                print(f"(1-pcurrent)*(1-pswan)*respawn probability: {(1 - Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(1- Constants.SWAN_PROB)*respawn_probability}")
+                print(f"(pcurrent)*(1-pswan)*respawn probability: {(Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(1- Constants.SWAN_PROB)*respawn_probability}")
+                print(f"(1-pcurrent)*(pswan)*respawn probability: {(1 - Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(Constants.SWAN_PROB)*respawn_probability}")
+                print(f"(pcurrent)*(pswan)*respawn probability: {(Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(Constants.SWAN_PROB)*respawn_probability}")
+                print(f"P: {p_val}, P_true: {p_true_val}")
+                print("---------------------------------------------------")
+
+        break
+        timer = time.time()
         P = compute_transition_probabilities(Constants)
-        
+        print("Time elapsed with serial computation: ", time.time() - timer)
         if not np.all(
             np.logical_or(np.isclose(P.sum(axis=1), 1), np.isclose(P.sum(axis=1), 0))
         ):
