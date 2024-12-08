@@ -20,119 +20,6 @@
 import numpy as np
 from utils import *
 
-def compute_matrix_Piju(Constants):
-    # pre allocate
-    P = np.zeros((Constants.K, Constants.K,Constants.L)) 
-    #initial position as an index
-    #map_start = state2idx(Constants.START_POS[0],Constants.START_POS[1],Constants)
-
-    #set of admissible respawn states expressed as indices.
-    respawn_indices = generate_respawn_indices(Constants)
-    respawn_probability = 1/(Constants.M*Constants.N-1)
-    # set of static drone positions  (Use a set for quick lookups)
-    static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)  
-    for i in range(Constants.M):# iterate over all x
-        for j in range(Constants.N): # iterate over all y
-            for i_swan in range(Constants.M): # iterate over all x for the swan 
-                for j_swan in range(Constants.N): # iterate over all y for the swan
-                    # current state as index
-                    map_i = state2idx([i,j,i_swan, j_swan]) 
-                    if i == i_swan and j == j_swan:
-                            continue
-                    elif tuple([i,j]) in static_drones:
-                        continue
-                    elif i== Constants.GOAL_POS[0] and j == Constants.GOAL_POS[1]:
-                        continue
-                    for l in range(Constants.L): # iterate over all input                    
-                        #----- no current applied ----------
-                        #check where you'd end up WITHOUTH current
-                        no_current_i, no_current_j = compute_state_with_input(i,j,l, Constants)
-                        #print(f"map_i: {map_i}")
-
-                        #check where the swan ends up if it moves
-                        dx, dy = Swan_movment_to_catch_drone(i_swan, j_swan, i, j)
-                        moved_swan_x = i_swan + dx
-                        moved_swan_y = j_swan + dy
-                        
-                        #check if you end un inside the map and that the swan is not hitting the drone
-                        if 0 <= no_current_i < Constants.M and 0 <= no_current_j < Constants.N:
-                            #chek for static collision
-                            if not tuple([no_current_i, no_current_j]) in static_drones:
-                                #if not hitted, check for swan collision
-                                # ---- moving swan ----
-                                #if the swan is moving and is not going to hit the drone
-                                if moved_swan_x != no_current_i or moved_swan_y != no_current_j:
-                                    #if no problem arises, you go to the designated state 
-                                    P[map_i,state2idx([no_current_i,no_current_j,moved_swan_x, moved_swan_y]),l] += (1 - Constants.CURRENT_PROB[i][j])* Constants.SWAN_PROB
-                                    
-                                #the swan is moving and hits the drone
-                                else: 
-                                    for respawn_index in respawn_indices:
-                                        P[map_i, respawn_index, l]  += (1 - Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB*respawn_probability
-                                        
-                                #if the swan is not moving and is not going to hit the drone
-                                if (i_swan != no_current_i or j_swan != no_current_j):
-                                    P[map_i,state2idx([no_current_i,no_current_j,i_swan, j_swan]),l] += (1 - Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
-                                    
-                                #the swan is not moving and hits the drone
-                                else:
-                                    for respawn_index in respawn_indices:
-                                        P[map_i, respawn_index, l] += (1 - Constants.CURRENT_PROB[i][j]) * (1- Constants.SWAN_PROB)*respawn_probability
-                                        
-                            else:
-                                #if you hit a static drone, you go home
-                                for respawn_index in respawn_indices:
-                                    P[map_i, respawn_index, l]+= (1 - Constants.CURRENT_PROB[i][j])*respawn_probability
-                                    
-                        else:
-                            #If you are outside the map, you go home with probability respawn_probability, 
-                            for respawn_index in respawn_indices:
-                                P[map_i, respawn_index, l] += (1-Constants.CURRENT_PROB[i][j])*respawn_probability
-                                
-                        # ––––– apply current –-------
-                        #check wherer you'd end up WITH current
-                        current_i_val, current_j_val = compute_state_plus_currents(i,j, Constants)
-                        current_input_state_i ,current_input_state_j = compute_state_with_input(current_i_val,current_j_val,l, Constants)
-                        # Genera la linea tra i punti di partenza e arrivo senza corrente
-                        path = bresenham((i, j), (current_input_state_i, current_input_state_j))
-                        # remove first element of path because is the starting position if the path is logner than 1
-                        if len(path) > 1:
-                            path = path[1:]
-                        #check if you end up outside the map and that the swan is not hitting the drone
-                        if 0 <= current_input_state_i < Constants.M and 0 <= current_input_state_j < Constants.N:
-                            #check if collision with static drones
-                            if not any(tuple(point) in static_drones for point in path):
-                                #if the swan is moving and is not going to hit the drone
-                                if current_input_state_i!=moved_swan_x or current_input_state_j != moved_swan_y:
-                                    #if no problem arises, you go to the designated x with probability p_current
-                                    P[map_i,state2idx([current_input_state_i,current_input_state_j,moved_swan_x, moved_swan_y]),l] += (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB
-                                    
-                                #the swan is moving and hits the drone
-                                else: 
-                                    for respawn_index in respawn_indices:
-                                        P[map_i, respawn_index, l] += (Constants.CURRENT_PROB[i][j]) * Constants.SWAN_PROB*respawn_probability
-                                        
-                                #if the swan is not moving and is not going to hit the drone
-                                if current_input_state_i != i_swan or current_input_state_j != j_swan:
-                                    P[map_i,state2idx([current_input_state_i,current_input_state_j,i_swan, j_swan]),l] += (Constants.CURRENT_PROB[i][j]) *(1- Constants.SWAN_PROB)
-                                    
-                                #the swan is not moving and hits the drone
-                                else:
-                                    for respawn_index in respawn_indices:
-                                        P[map_i, respawn_index, l] += (Constants.CURRENT_PROB[i][j]) * (1- Constants.SWAN_PROB)*respawn_probability
-                                        
-                            else:
-                                #if hitted by a static drone, you go home
-                                for respawn_index in respawn_indices:
-                                    P[map_i, respawn_index, l] += Constants.CURRENT_PROB[i][j]*respawn_probability
-                                    
-                        # if you are outside the map you go home.
-                        else:
-                            for respawn_index in respawn_indices:
-                                P[map_i, respawn_index, l] += respawn_probability*Constants.CURRENT_PROB[i][j]
-                                
-    return P
-
 def compute_transition_probabilities(Constants):
     """Computes the transition probability matrix P.
 
@@ -148,7 +35,196 @@ def compute_transition_probabilities(Constants):
     Returns:
         np.array: Transition probability matrix of shape (K,K,L).
     """
-    P = compute_matrix_Piju(Constants)
+    """
+    Calcola la matrice delle probabilità di transizione P[i, j, u].
+
+    Args:
+        Constants: Classe contenente le costanti del problema.
+
+    Returns:
+        np.ndarray: Matrice di probabilità di transizione P di forma (K, K, L).
+    """
+    # Pre-allocazione della matrice delle probabilità di transizione
+    P = np.zeros((Constants.K, Constants.K, Constants.L))
+
+    # Genera griglie di coordinate per gli stati (drone e cigno)
+    y_swan, x_swan, y_drone, x_drone = np.meshgrid(
+        np.arange(Constants.N),
+        np.arange(Constants.M),
+        np.arange(Constants.N),
+        np.arange(Constants.M),
+        indexing="ij"
+    )
+
+    # Appiattisce le coordinate per operare con vettori
+    x_drone = x_drone.ravel()
+    y_drone = y_drone.ravel()
+    x_swan = x_swan.ravel()
+    y_swan = y_swan.ravel()
+
+    # Stati di partenza come array di coordinate
+    start_states = np.stack([x_drone, y_drone, x_swan, y_swan], axis=1)
+    map_i = state2idx_vectorialized(start_states)  # Mappa degli indici per gli stati
+
+    # Genera gli indici di respawn e la loro probabilità
+    respawn_indices = generate_respawn_indices(Constants)
+    respawn_probability = 1 / (Constants.M * Constants.N - 1)
+
+    # Insieme dei droni statici (tuple per facile confronto)
+    static_drones = set(tuple(pos) for pos in Constants.DRONE_POS)
+
+    # Condizioni per stati non validi
+    starting_swan_collision_mask = (x_drone == x_swan) & (y_drone == y_swan)  # Collisione con il cigno
+    static_drone_collision_mask = np.array([(x, y) in static_drones for x, y in zip(x_drone, y_drone)])  # Collisione con drone statico
+    goal_position_mask = (x_drone == Constants.GOAL_POS[0]) & (y_drone == Constants.GOAL_POS[1])  # Posizione del goal
+
+    # Identifica stati iniziali non validi
+    not_valid_states_mask = (starting_swan_collision_mask |
+                              static_drone_collision_mask | 
+                              goal_position_mask)
+    not_valid_map_i = map_i[not_valid_states_mask]
+
+    # Matrice di blocco per droni statici
+    blocked = np.zeros((Constants.M, Constants.N), dtype=bool)
+    for (xd, yd) in static_drones:
+        blocked[xd, yd] = True
+
+    # Itera su ogni input di controllo
+    for l in range(Constants.L):
+        # Calcola le nuove coordinate del drone senza corrente
+        no_current_x_drone = x_drone + Constants.INPUT_SPACE[l][0]
+        no_current_y_drone = y_drone + Constants.INPUT_SPACE[l][1]
+
+        # Calcola le nuove coordinate del drone con corrente
+        x_drone_with_current, y_drone_with_current = compute_state_plus_currents_vectorialized(x_drone, y_drone, Constants)
+        current_x_drone = Constants.INPUT_SPACE[l][0] + x_drone_with_current
+        current_y_drone = Constants.INPUT_SPACE[l][1] + y_drone_with_current
+
+        # Calcola i percorsi usando Bresenham per la validità delle traiettorie
+        starts = np.column_stack((x_drone, y_drone))
+        ends = np.column_stack((current_x_drone, current_y_drone))
+        paths = bresenham_fixed_length(starts, ends, max_len=3)
+        paths_x = paths[:, :, 0]
+        paths_y = paths[:, :, 1]
+
+        # Movimento del cigno verso il drone
+        dx, dy = Swan_movment_to_catch_drone_vectorized(x_swan, y_swan, x_drone, y_drone)
+        new_x_swan = x_swan + dx
+        new_y_swan = y_swan + dy
+
+        # Condizioni di validità per i nuovi stati
+        valid_no_current_no_swan = (
+            (0 <= no_current_x_drone) & (no_current_x_drone < Constants.M) &
+            (0 <= no_current_y_drone) & (no_current_y_drone < Constants.N) &
+            ~np.array([(x, y) in static_drones for x, y in zip(no_current_x_drone, no_current_y_drone)]) &
+            ~((no_current_x_drone == x_swan) & (no_current_y_drone == y_swan))
+        )
+
+        valid_no_current_swan = (
+            (0 <= no_current_x_drone) & (no_current_x_drone < Constants.M) &
+            (0 <= no_current_y_drone) & (no_current_y_drone < Constants.N) &
+            ~np.array([(x, y) in static_drones for x, y in zip(no_current_x_drone, no_current_y_drone)]) &
+            ~((no_current_x_drone == new_x_swan) & (no_current_y_drone == new_y_swan))
+        )
+
+        valid_current_no_swan = (
+            (0 <= current_x_drone) & (current_x_drone < Constants.M) &
+            (0 <= current_y_drone) & (current_y_drone < Constants.N) &
+            ~np.array([(x, y) in static_drones for x, y in zip(current_x_drone, current_y_drone)]) &
+            ~((current_x_drone == x_swan) & (current_y_drone == y_swan))
+        )
+
+        valid_current_swan = (
+            (0 <= current_x_drone) & (current_x_drone < Constants.M) &
+            (0 <= current_y_drone) & (current_y_drone < Constants.N) &
+            ~np.array([(x, y) in static_drones for x, y in zip(current_x_drone, current_y_drone)]) &
+            ~((current_x_drone == new_x_swan) & (current_y_drone == new_y_swan))
+        )
+
+        # Maschera dei punti validi nei percorsi
+        valid_points_mask = (paths_x >= 0) & (paths_y >= 0) & (paths_x < Constants.M) & (paths_y < Constants.N)
+        free_points = np.ones_like(valid_points_mask, dtype=bool)
+        free_points[valid_points_mask] = ~blocked[paths_x[valid_points_mask], paths_y[valid_points_mask]]
+        valid_paths = free_points.all(axis=1)  # Percorsi completamente validi
+
+        # Integra la validità dei percorsi con le condizioni
+        valid_current_no_swan &= valid_paths
+        valid_current_swan &= valid_paths
+
+        # Stati successivi validi
+        next_states_no_current_no_swan = np.stack([
+            no_current_x_drone[valid_no_current_no_swan], no_current_y_drone[valid_no_current_no_swan],
+            x_swan[valid_no_current_no_swan], y_swan[valid_no_current_no_swan]
+        ], axis=1)
+
+        next_states_no_current_swan = np.stack([
+            no_current_x_drone[valid_no_current_swan], no_current_y_drone[valid_no_current_swan],
+            new_x_swan[valid_no_current_swan], new_y_swan[valid_no_current_swan]
+        ], axis=1)
+
+        next_states_current_no_swan = np.stack([
+            current_x_drone[valid_current_no_swan], current_y_drone[valid_current_no_swan],
+            x_swan[valid_current_no_swan], y_swan[valid_current_no_swan]
+        ], axis=1)
+
+        next_states_current_swan = np.stack([
+            current_x_drone[valid_current_swan], current_y_drone[valid_current_swan],
+            new_x_swan[valid_current_swan], new_y_swan[valid_current_swan]
+        ], axis=1)
+
+        # Aggiornamento della matrice P
+        P[map_i[valid_no_current_no_swan], state2idx_vectorialized(next_states_no_current_no_swan), l] += (
+            (1 - Constants.CURRENT_PROB[x_drone[valid_no_current_no_swan], y_drone[valid_no_current_no_swan]]) *
+            (1 - Constants.SWAN_PROB)
+        )
+
+        P[map_i[valid_no_current_swan], state2idx_vectorialized(next_states_no_current_swan), l] += (
+            (1 - Constants.CURRENT_PROB[x_drone[valid_no_current_swan], y_drone[valid_no_current_swan]]) *
+            Constants.SWAN_PROB
+        )
+
+        P[map_i[valid_current_no_swan], state2idx_vectorialized(next_states_current_no_swan), l] += (
+            Constants.CURRENT_PROB[x_drone[valid_current_no_swan], y_drone[valid_current_no_swan]] *
+            (1 - Constants.SWAN_PROB)
+        )
+
+        P[map_i[valid_current_swan], state2idx_vectorialized(next_states_current_swan), l] += (
+            Constants.CURRENT_PROB[x_drone[valid_current_swan], y_drone[valid_current_swan]] *
+            Constants.SWAN_PROB
+        )
+
+        # Stati di respawn per input non validi
+        invalid_no_current_no_swan = ~valid_no_current_no_swan
+        invalid_no_current_swan = ~valid_no_current_swan
+        invalid_current_no_swan = ~valid_current_no_swan
+        invalid_current_swan = ~valid_current_swan
+
+        for idx in map_i[invalid_no_current_no_swan]:
+            P[idx, respawn_indices, l] += respawn_probability * (
+                (1 - Constants.CURRENT_PROB[x_drone[idx], y_drone[idx]]) *
+                (1 - Constants.SWAN_PROB)
+            )
+
+        for idx in map_i[invalid_no_current_swan]:
+            P[idx, respawn_indices, l] += respawn_probability * (
+                (1 - Constants.CURRENT_PROB[x_drone[idx], y_drone[idx]]) *
+                Constants.SWAN_PROB
+            )
+
+        for idx in map_i[invalid_current_no_swan]:
+            P[idx, respawn_indices, l] += respawn_probability * (
+                Constants.CURRENT_PROB[x_drone[idx], y_drone[idx]] *
+                (1 - Constants.SWAN_PROB)
+            )
+
+        for idx in map_i[invalid_current_swan]:
+            P[idx, respawn_indices, l] += respawn_probability * (
+                Constants.CURRENT_PROB[x_drone[idx], y_drone[idx]] *
+                Constants.SWAN_PROB
+            )
+
+    # Azzeramento delle probabilità per stati non validi
+    P[not_valid_map_i, :, :] = 0
 
 
     return P

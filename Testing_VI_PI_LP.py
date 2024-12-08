@@ -79,7 +79,7 @@ print("DataFrame created successfully:")
 print(df_results.head())
 
 # Save DataFrame to CSV
-csv_file_path = "solver_performance_results.csv"
+csv_file_path = "solver_performance_results_2.csv"
 df_results.to_csv(csv_file_path, index=False)
 
 # Confirm that the CSV file is saved
@@ -112,3 +112,34 @@ plt.show()
 # Print summary table
 print("Summary of best algorithms for each setting:")
 print(df_results)
+# Calcoliamo le differenze rispetto a Value Iteration (VI)
+df_results["Diff_PI"] = df_results["Policy Iteration Time"] - df_results["Value Iteration Time"]
+df_results["Diff_LP"] = df_results["Linear Programming Time"] - df_results["Value Iteration Time"]
+
+# Creiamo un grafico a barre che mostra le differenze PI e LP rispetto a VI
+fig, ax = plt.subplots(figsize=(12, 6))
+
+# L'asse x è semplicemente l'indice del DataFrame, potresti cambiarlo con una combinazione di (M,N,N_DRONES) 
+# o creare un indice descrittivo.
+x = np.arange(len(df_results))
+width = 0.35
+
+# Bar per la differenza PI
+bars_pi = ax.bar(x - width/2, df_results["Diff_PI"], width, label='PI - VI', 
+                 color=['green' if val < 0 else 'red' for val in df_results["Diff_PI"]])
+# Bar per la differenza LP
+bars_lp = ax.bar(x + width/2, df_results["Diff_LP"], width, label='LP - VI', 
+                 color=['green' if val < 0 else 'red' for val in df_results["Diff_LP"]])
+
+# Linea orizzontale a zero per riferimento
+ax.axhline(0, color='black', linewidth=1)
+
+# Aggiungiamo alcune etichette e il titolo
+ax.set_ylabel('Tempo in eccesso/riduzione rispetto a VI (s)')
+ax.set_title('Differenze di Policy Iteration e Linear Programming rispetto a Value Iteration')
+ax.set_xticks(x)
+ax.set_xticklabels([f"M={row.M},N={row.N},D={row.N_DRONES}" for _, row in df_results.iterrows()], rotation=90)
+ax.legend()
+
+plt.tight_layout()
+plt.show()
