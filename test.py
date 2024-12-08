@@ -88,7 +88,8 @@ if __name__ == "__main__":
                 print("Stato di arrivo   (x_drone, y_drone, x_swan, y_swan):", next_state)
                 print(f"input: {idx2input(l)}")
                 print(f"flow field value for starting state: {Constants.FLOW_FIELD[start_state[0][0],start_state[0][1]]} ")      
-                print(f"swan movment: {Swan_movment_to_catch_drone(start_state[0][2], start_state[0][3], start_state[0][0], start_state[0][1])}")
+                print(f"swan movment: {Swan_movment_to_catch_drone_vectorized(np.array(start_state[0][2]), np.array(start_state[0][3]), np.array(start_state[0][0]), np.array(start_state[0][1]))}")
+                print(f"path: {bresenham((start_state[0][0], start_state[0][1]), (next_state[0][0], next_state[0][1]))}")
                 print("--- probability ---")              
                 print(f"(1-pcurrent)*(1-pswan): {(1 - Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(1- Constants.SWAN_PROB)}")
                 print(f"(pcurrent)*(1-pswan): {(Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(1- Constants.SWAN_PROB)}")
@@ -100,8 +101,8 @@ if __name__ == "__main__":
                 print(f"(pcurrent)*(pswan)*respawn probability: {(Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(Constants.SWAN_PROB)*respawn_probability}")
                 print(f"P: {p_val}, P_true: {p_true_val}")
                 print("---------------------------------------------------")
-
-        break
+    
+        
         timer = time.time()
         P = compute_transition_probabilities(Constants)
         print("Time elapsed with serial computation: ", time.time() - timer)

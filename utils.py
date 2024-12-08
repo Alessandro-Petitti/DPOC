@@ -337,11 +337,18 @@ def generate_respawn_indices(Constants):
 
     return np.array(respawn_states)
 
+import numpy as np
 
 def Swan_movment_to_catch_drone_vectorized(x_swan, y_swan, x_drone, y_drone):
+    # Converte i singoli valori in array monodimensionali nel caso vengano passati scalari
+    x_swan = np.atleast_1d(x_swan)
+    y_swan = np.atleast_1d(y_swan)
+    x_drone = np.atleast_1d(x_drone)
+    y_drone = np.atleast_1d(y_drone)
+    
     # Calcolo dell'angolo theta
     theta = np.arctan2(y_drone - y_swan, x_drone - x_swan)
-
+    
     # Creazione array per il movimento
     movement = np.zeros((len(theta), 2), dtype=int)
 
@@ -359,4 +366,73 @@ def Swan_movment_to_catch_drone_vectorized(x_swan, y_swan, x_drone, y_drone):
     same_pos_mask = (x_swan == x_drone) & (y_swan == y_drone)
     movement[same_pos_mask] = [0, 0]
 
-    return movement[:, 0], movement[:, 1]
+    dx, dy = movement[:, 0], movement[:, 1]
+    
+    # Se l'input era scalare, restituiamo valori scalari
+    if dx.size == 1:
+        return dx[0], dy[0]
+    else:
+        return dx, dy
+
+def bresenham_fixed_length(starts, ends, max_len=3):
+    """
+    Applica l'algoritmo di Bresenham a più segmenti contemporaneamente e
+    restituisce un array di dimensioni (N, max_len, 2) dove N è il numero
+    di segmenti. Ogni riga corrisponde a un percorso, con esattamente `max_len`
+    punti (x,y). Se il percorso è più corto, viene riempito con -1. 
+
+    Parametri:
+        starts (array_like): Nx2 array con i punti di start (x0, y0)
+        ends (array_like): Nx2 array con i punti di end (x1, y1)
+        max_len (int): Lunghezza massima del percorso (default=3)
+
+    Ritorna:
+        paths (np.ndarray): Array di shape (N, max_len, 2)
+    """
+    starts = np.asarray(starts)
+    ends = np.asarray(ends)
+
+    if starts.shape[0] != ends.shape[0]:
+        raise ValueError("Il numero di start deve coincidere con il numero di end.")
+
+    N = starts.shape[0]
+    # Array risultato: inizializzato a -1
+    paths = np.full((N, max_len, 2), -1, dtype=int)
+
+    for i, ((x0, y0), (x1, y1)) in enumerate(zip(starts, ends)):
+        dx = x1 - x0
+        dy = y1 - y0
+
+        x_sign = 1 if dx > 0 else -1 if dx < 0 else 0
+        y_sign = 1 if dy > 0 else -1 if dy < 0 else 0
+
+        dx = abs(dx)
+        dy = abs(dy)
+
+        if dx > dy:
+            xx, xy, yx, yy = x_sign, 0, 0, y_sign
+        else:
+            dx, dy = dy, dx
+            xx, xy, yx, yy = 0, y_sign, x_sign, 0
+
+        D = 2 * dy - dx
+        y = 0
+        line_points = []
+        for x in range(dx + 1):
+            px = x0 + x * xx + y * yx
+            py = y0 + x * xy + y * yy
+            line_points.append((px, py))
+            if D >= 0:
+                y += 1
+                D -= 2 * dx
+            D += 2 * dy
+
+        # Se il percorso è più lungo di max_len, tronchiamo
+        if len(line_points) > max_len:
+            line_points = line_points[:max_len]
+
+        # Se più corto, viene lasciato com'è: i restanti sono già -1
+        for j, pt in enumerate(line_points):
+            paths[i, j] = pt
+
+    return paths

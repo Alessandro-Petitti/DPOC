@@ -15,12 +15,13 @@ def parallel_Pij(Constants):
     P = np.zeros((Constants.K, Constants.K, Constants.L))
 
     # Genera griglie di coordinate per gli stati
-    x_drone, y_drone, x_swan, y_swan = np.meshgrid(
-        np.arange(Constants.M), np.arange(Constants.N),
-        np.arange(Constants.M), np.arange(Constants.N),
+    y_swan, x_swan, y_drone, x_drone = np.meshgrid(
+        np.arange(Constants.N),
+        np.arange(Constants.M),
+        np.arange(Constants.N),
+        np.arange(Constants.M),
         indexing="ij"
     )
-
     # Appiattisce le coordinate per operare con vettori
     x_drone = x_drone.ravel()
     y_drone = y_drone.ravel()
@@ -51,47 +52,39 @@ def parallel_Pij(Constants):
     # Filtra gli stati iniziali e gli indici di mappatura
     invalid_start_states = start_states[not_valid_states_mask]
     #P(i,not_vald_ map_i,u) = 0
-    not_valid_map_i = state2idx_vectorialized(invalid_start_states)
 
+    not_valid_map_i = map_i[not_valid_states_mask]
+    blocked = np.zeros((Constants.M, Constants.N), dtype=bool)
+    for (xd, yd) in static_drones:
+        blocked[xd, yd] = True
+    
     # Per ogni ingresso, calcola le transizioni
     for l in range(Constants.L):
         # Calcola nuovi stati senza corrente
         no_current_x_drone = x_drone + Constants.INPUT_SPACE[l][0]
         no_current_y_drone = y_drone + Constants.INPUT_SPACE[l][1]
-        #crea una maschera per gli stati validi
-        valid_no_current = (0 <= no_current_x_drone) & (no_current_x_drone < Constants.M) & (0 <= no_current_y_drone) & (no_current_y_drone < Constants.N)
         # Calcola nuovi stati con corrente
         x_drone_with_current, y_drone_with_current = compute_state_plus_currents_vectorialized(x_drone, y_drone, Constants)
         current_x_drone = Constants.INPUT_SPACE[l][0]+x_drone_with_current
         current_y_drone = Constants.INPUT_SPACE[l][1]+y_drone_with_current
+        starts = np.column_stack((x_drone, y_drone))  # shape (K, 2)
+        ends = np.column_stack((current_x_drone, current_y_drone))      # shape (K, 2)
+
+        paths = bresenham_fixed_length(starts, ends, max_len=3)
+        #paths = bresenham_fixed_length((x_drone, y_drone), (current_x_drone, current_y_drone))
         
-        #crea una maschera per gli stati validi
-        valid_current = (0 <= current_x_drone) & (current_x_drone < Constants.M) & (0 <= current_y_drone) & (current_y_drone < Constants.N)
-        
+        # paths ha dimensione (N, max_len, 2)
+        # paths[:,:,0] sono le x, paths[:,:,1] sono le y
+        paths_x = paths[:, :, 0]
+        paths_y = paths[:, :, 1]
+
         # Calcola la nuova posizione del cigno
         dx, dy = Swan_movment_to_catch_drone_vectorized(
             x_swan, y_swan, x_drone, y_drone
         )
         new_x_swan = x_swan + dx
         new_y_swan = y_swan + dy
-                
-        # Crea una maschera che individua i movimenti invalidi
-        mask_invalid_x = (new_x_swan < 0) | (new_x_swan >= Constants.M)
-        mask_invalid_y = (new_y_swan < 0) | (new_y_swan >= Constants.N)
-        mask_invalid = mask_invalid_x | mask_invalid_y
-
-        if np.any(mask_invalid):
-            # Ottieni gli indici degli elementi non validi
-            invalid_indices = np.where(mask_invalid)[0]
-            print("Stati con movimento invalido:")
-            for idx in invalid_indices:
-                print(
-                    f"Indice: {idx}, "
-                    f"x_drone: {x_drone[idx]}, y_drone: {y_drone[idx]}, "
-                    f"x_swan: {x_swan[idx]}, y_swan: {y_swan[idx]}, "
-                    f"dx: {dx[idx]}, dy: {dy[idx]}, "
-                    f"new_x_swan: {new_x_swan[idx]}, new_y_swan: {new_y_swan[idx]}"
-                )
+        
         valid_no_current_no_swan = (
             (0 <= no_current_x_drone) & (no_current_x_drone < Constants.M) &
             (0 <= no_current_y_drone) & (no_current_y_drone < Constants.N) &
@@ -119,31 +112,22 @@ def parallel_Pij(Constants):
             ~(np.array([(x, y) in static_drones for x, y in zip(current_x_drone, current_y_drone)])) &
             ~((current_x_drone == new_x_swan) & (current_y_drone == new_y_swan))
         )
+        # Maschera dei punti validi (cioè non -1)
+        valid_points_mask = (paths_x >= 0) & (paths_y >= 0) & (paths_x < Constants.M) & (paths_y < Constants.N)
 
-        # Lista delle maschere e dei loro nomi per iterazioni dinamiche
-        """masks = [valid_no_current_no_swan, valid_no_current_swan, valid_current_no_swan, valid_current_swan]
-        mask_names = ["valid_no_current_no_swan", "valid_no_current_swan", "valid_current_no_swan", "valid_current_swan"]
+        # Creiamo un array temporaneo per la libertà dei punti
+        free_points = np.ones_like(valid_points_mask, dtype=bool)
 
-        # Controllo globale della mutua esclusività
-        overlap_check = np.sum([m.astype(int) for m in masks], axis=0)
-        if np.any(overlap_check > 1):
-            indices = np.where(overlap_check > 1)[0]
-            print("ATTENZIONE: Ci sono stati che appartengono a più di una categoria!")
-            print("Indici con sovrapposizione globale:", indices)
-        else:
-            print("Nessuno stato appartiene a più di una categoria (nessuna sovrapposizione globale).")
+        # Per tutti i punti validi controlliamo se sono liberi
+        free_points[valid_points_mask] = ~blocked[paths_x[valid_points_mask], paths_y[valid_points_mask]]
 
-        # Controllo a coppie
-        for i in range(len(masks)):
-            for j in range(i+1, len(masks)):
-                overlap = masks[i] & masks[j]
-                if np.any(overlap):
-                    indices = np.where(overlap)[0]
-                    print(f"Sovrapposizione tra {mask_names[i]} e {mask_names[j]}:")
-                    print("Indici con sovrapposizione:", indices)
-                else:
-                    print(f"Nessuna sovrapposizione tra {mask_names[i]} e {mask_names[j]}")"""
+        # Se vogliamo che l'intero percorso sia valido,
+        # controlliamo che tutti i punti validi siano True
+        valid_paths = free_points.all(axis=1)
 
+        # Ora puoi integrare con le tue maschere
+        valid_current_no_swan &= valid_paths
+        valid_current_swan &= valid_paths
         # Stati successivi
         #seleziona quale stato è valido
         next_states_no_current_no_swan = np.stack([
@@ -164,7 +148,7 @@ def parallel_Pij(Constants):
         ], axis=1)
 
         # Aggiorna la matrice P per i 4 casi
-        P[state2idx_vectorialized(start_states[valid_no_current_no_swan]), state2idx_vectorialized(next_states_no_current_no_swan), l] += (
+        P[map_i[valid_no_current_no_swan], state2idx_vectorialized(next_states_no_current_no_swan), l] += (
             (1 - Constants.CURRENT_PROB[x_drone[valid_no_current_no_swan], y_drone[valid_no_current_no_swan]]) *
             (1 - Constants.SWAN_PROB)
         )
