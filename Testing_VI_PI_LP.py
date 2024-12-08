@@ -2,7 +2,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from Solver import solution
+from provv import solution
 from Constants import Constants, generate_unique_coordinates
 from utils import *
 import itertools

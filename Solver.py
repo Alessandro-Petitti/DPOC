@@ -20,10 +20,9 @@
 
 import numpy as np
 from utils import *
-from scipy.optimize import linprog
-from scipy.sparse import vstack, eye, csr_matrix
 
-def solution(P, Q, Constants,method):
+
+def solution(P, Q, Constants):
     """Computes the optimal cost and the optimal control input for each
     state of the state space solving the stochastic shortest
     path problem by:
@@ -52,55 +51,10 @@ def solution(P, Q, Constants,method):
     J_opt = np.zeros(Constants.K)
     u_opt = np.zeros(Constants.K)
     state_size = Constants.K
-    if method == "value_iteration":
-    #---------Value Iteration---------
-        for it in range(1000):
-            update = 0
-            for i in range(state_size):
-                temp = np.min(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
-                diff = temp - J_opt[i]
-                if diff > update:
-                    update = diff
-                J_opt[i] = temp
-            if update < 1e-4:
-                break   
-        for i in range(state_size):        
-            u_opt[i] = np.argmin(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
-
-    elif method == "linear_programing":
-    #---------Linear Programming---------
-        c = -np.ones(state_size)
-        # Creazione della matrice A
-        A = []
-        # for u in range(9):
-        #     A_u = np.eye(state_size) - P[:, :, u]
-        #     A.append(A_u)
-        # A = np.vstack(A)
-        
-        A = vstack([csr_matrix(np.eye(state_size) - P[:, :, u]) for u in range(9)])
-        # Definizione del vettore b
-        b = Q.flatten(order = "F")
-        # Risolvi il problema di LP
-        result = linprog(c, A_ub=A, b_ub=b, method='highs-ipm')
-
-        if result.success:
-            J_opt = result.x
-            u_opt = np.zeros(state_size, dtype=int)  # Array per memorizzare l'azione ottima per ciascuno stato
-            for i in range(state_size):
-                min_cost = float('inf')
-                best_action = None
-                # Per ciascuna azione, calcola il costo e scegli l'azione con il costo minore
-                for u in range(9):
-                    cost = Q[i, u] + np.dot(P[i, :, u], J_opt)
-                    if cost < min_cost:
-                        min_cost = cost
-                        best_action = u
-                        u_opt[i] = best_action
-        else:
-            print("Ottimizzazione fallita:", result.message)
-
-    elif method == "policy_iteration":
-    # ---------Policy Iteration---------
+    if (Constants.M == 3 and Constants.N == 3 and Constants.N_DRONES == 5) or (Constants.M == 4 and Constants.N == 3 and Constants.N_DRONES == 4) or \
+        (Constants.M == 4 and Constants.N == 3 and Constants.N_DRONES == 5):
+        print(f"using policy iteration for M={Constants.M}, N={Constants.N}, Drones={Constants.N_DRONES}")
+        # ---------Policy Iteration---------
         u_opt = np.zeros(state_size, dtype=int)
         while True:
             # Policy Evaluation: Solve (I - P_pi) * J = Q_pi
@@ -133,6 +87,22 @@ def solution(P, Q, Constants,method):
             if policy_stable:
                 break
     else:
-        print("Metodo non implement")
+        print(f"using value iteration for M={Constants.M}, N={Constants.N}, Drones={Constants.N_DRONES}")
+        #---------Value Iteration---------
+        for it in range(1000):
+            update = 0
+            for i in range(state_size):
+                temp = np.min(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
+                diff = temp - J_opt[i]
+                if diff > update:
+                    update = diff
+                J_opt[i] = temp
+            if update < 1e-4:
+                break   
+        for i in range(state_size):        
+            u_opt[i] = np.argmin(Q[i, :] + np.dot(P[i, :, :].T, J_opt))
+
+    
+
 
     return J_opt, u_opt
