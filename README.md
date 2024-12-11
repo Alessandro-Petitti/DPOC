@@ -22,7 +22,7 @@ The solution implements the following features to achieve efficient and correct 
 ### Solution Features
 
 1. **Parallelized Computation of Transition Probabilities (`P_ij`)**
-   - Leveraging parallel processing, this feature accelerates the computation of state transition probabilities, essential for dynamic programming algorithms.
+   - Leveraging Numpy indexing, this feature accelerates the computation of state transition probabilities, essential for dynamic programming algorithms.
 
 2. **Value Iteration with Gauss-Seidel Updates**
    - This implementation of the value iteration algorithm uses Gauss-Seidel updates for faster convergence. By updating states sequentially within each iteration, it reduces computational overhead compared to standard synchronous methods.
