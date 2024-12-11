@@ -26,7 +26,6 @@ from ComputeTransitionProbabilities import compute_transition_probabilities
 from Constants import Constants
 from Solver import solution
 from utils import *
-import prallel_Pij 
 
 if __name__ == "__main__":
     n_tests = 4
@@ -46,7 +45,7 @@ if __name__ == "__main__":
         print(f"Cost for each drone: {Constants.DRONE_COST}, cost for trhuster: {Constants.THRUSTER_COST}, cost for time: {Constants.TIME_COST}")
         print(f"swan probability {Constants.SWAN_PROB}")
         timer = time.time()
-        P = prallel_Pij.parallel_Pij(Constants)
+        P =compute_transition_probabilities(Constants)
         print("Time elapsed with parallel computation: ", time.time() - timer)
 
         #debug!
