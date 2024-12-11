@@ -68,8 +68,5 @@ To run the solution:
 
 ## Contributing
 
-This repository is a submission for the programming exercise and adheres to the specified structure and requirements. If you wish to extend or adapt the solution, ensure compatibility with the provided framework.
-
-## License
-
-This project is licensed under the MIT License. See `LICENSE` for details.
+This repository is a submission for the programming exercise and adheres to the specified structure and requirements. 
+If any further detail is needed you can refere to apetitti@ethz.ch or gguidone@ethz.ch
