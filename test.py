@@ -50,7 +50,7 @@ if __name__ == "__main__":
         print("Time elapsed with parallel computation: ", time.time() - timer)
 
         #debug!
-        P_true = file["P"]
+        """P_true = file["P"]
         tolerance = 1e-4
 
         # Differenza assoluta tra P e P_true
@@ -101,11 +101,9 @@ if __name__ == "__main__":
                 print(f"(pcurrent)*(pswan)*respawn probability: {(Constants.CURRENT_PROB[start_state[0][0],start_state[0][1]])*(Constants.SWAN_PROB)*respawn_probability}")
                 print(f"P: {p_val}, P_true: {p_true_val}")
                 print("---------------------------------------------------")
-    
+        """
         
-        timer = time.time()
-        P = compute_transition_probabilities(Constants)
-        print("Time elapsed with serial computation: ", time.time() - timer)
+        
         if not np.all(
             np.logical_or(np.isclose(P.sum(axis=1), 1), np.isclose(P.sum(axis=1), 0))
         ):
@@ -131,7 +129,7 @@ if __name__ == "__main__":
 
         
         timer = time.time()
-        [J_opt, u_opt] = solution(P, Q, Constants, method="value_iteration")
+        [J_opt, u_opt] = solution(P, Q, Constants)
         print("Time elapsed: ", time.time() - timer)
         if not np.allclose(J_opt, file["J"], rtol=1e-4, atol=1e-7):
             print("Wrong optimal cost")
